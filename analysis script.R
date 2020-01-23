@@ -19,5 +19,36 @@ for (s in 1: length(bbcCensusCount$siteID_uni)) {
   bbcCensusCount$time_range[s] = tmpTime
   }
 
-bbcCensusCount = filter(bbcCensusCount, count, count>= 2) 
-bbcCensusCount = filter(bbcCensusCount, time_range, time_range>= 10)
+bbcCountTemp = bbcCensusCount %>%
+  filter(count, count>= 2) %>%
+  filter(time_range, time_range>= 10)
+bbcCensusFinal = filter(bbc_censuses, siteID, siteID %in% bbcCountTemp$siteID_uni)
+
+bbcSitesTemp = filter(bbc_sites, siteID, siteID %in% bbcCensusFinal$siteID)
+bbcSitesFinal = bbcSitesTemp %>% 
+  select(siteID:longitude) %>% 
+  distinct()
+
+# Read in BBS data
+library(reticulate)
+use_condaenv("r-reticulate", require =TRUE)
+library(rdataretriever)
+bbs = rdataretriever::fetch('breed-bird-survey')
+
+bbsRoutes = bbs$routes
+
+# Change to pos long values to match BBC
+bbcSitesFinal$longitude = -(bbcSitesFinal$longitude)
+
+# Create spatial data frame
+sf_bbsRoutes = st_as_sf(bbsRoutes, 
+                   coords = c("longitude", "latitude"),
+                   crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+sf_bbcSites = st_as_sf(bbcSitesFinal,
+                       coords = c("longitude", "latitude"),
+                       crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+
+## filter to states, great circle 
+## for loop of closest routes to sites(by great circle dist)
+## save for loop output for each site
+

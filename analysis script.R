@@ -51,4 +51,5 @@ sf_bbcSites = st_as_sf(bbcSitesFinal,
 ## filter to states, great circle 
 ## for loop of closest routes to sites(by great circle dist)
 ## save for loop output for each site
-
+## st_distance()
+bbc_states = c("Connecticut", "Connecticut", "New York", "California", "California", "Connecticut", "District of Columbia", "Connecticut", "South Carolina", "Connecticut", "Ontario", "California", "New York", "Ontario", "South Carolina", "Tennessee", "Ontario", "California")

@@ -22,6 +22,7 @@ for (s in 1: length(bbcCensusCount$siteID_uni)) {
 bbcCountTemp = bbcCensusCount %>%
   filter(count, count>= 2) %>%
   filter(time_range, time_range>= 10)
+# filter(count >= 2, time_range >= 10)
 bbcCensusFinal = filter(bbc_censuses, siteID, siteID %in% bbcCountTemp$siteID_uni)
 
 bbcSitesTemp = filter(bbc_sites, siteID, siteID %in% bbcCensusFinal$siteID)
@@ -53,3 +54,4 @@ sf_bbcSites = st_as_sf(bbcSitesFinal,
 ## save for loop output for each site
 ## st_distance()
 bbc_states = c("Connecticut", "Connecticut", "New York", "California", "California", "Connecticut", "District of Columbia", "Connecticut", "South Carolina", "Connecticut", "Ontario", "California", "New York", "Ontario", "South Carolina", "Tennessee", "Ontario", "California")
+#

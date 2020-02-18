@@ -15,25 +15,49 @@ for(i in 1:length(counts_list)) {
        main = paste("Site ", i))
 }
 dev.off()
+#####
 
+
+
+#####
 pdf(file = "bbs_hist_byroute.pdf")
 for(i in 1:length(counts_list)) {
   
   par(mfrow = c(1,2))
   
-  occurrence1 = counts_list[[i]] %>% 
-    filter(year >= bbcSitesFinal$y1[i] - 2 & year <= bbcSitesFinal$y1[i] +2)  
+  occurrence1 = bbsWeather %>% 
+    filter(stateroute %in% counts_list[[i]]$stateroute, year >= bbcSitesFin$y1[i] - 2 & year <= bbcSitesFin$y1[i] +2)  
   
-  occurrence2 = counts_list[[i]] %>% 
-    filter(year >= bbcSitesFinal$y2[i] - 2 & year <= bbcSitesFinal$y2[i] +2) 
-
-  barplot(table(occurrence1$stateroute), xlab = "Y1 surveys")
-  barplot(table(occurrence2$stateroute), xlab = "Y2 surveys")
-  # try ggplot for better main title/label format
+  occurrence2 = bbsWeather %>% 
+    filter(stateroute %in% counts_list[[i]]$stateroute, year >= bbcSitesFin$y2[i] - 2 & year <= bbcSitesFin$y2[i] +2) 
+  
+  barplot(table(occurrence1$stateroute), xlab = "Y1 state route surveys", main = paste("Site ", i, ":", bbcSitesFin$State[i]))
+  barplot(table(occurrence2$stateroute), xlab = "Y2 state route surveys")
+  
 }
 dev.off()
 par(mfrow = c(1, 1))
 
+pdf(file = "map routes and surveys.pdf")
+us_states2163 = st_transform(us_states, 2163)
+us_map = tm_shape(us_states2163) + 
+  tm_polygons() + 
+  tm_layout(frame = FALSE) 
+
+us_map = us_map + 
+  tm_shape(sf_bbcSites)+
+  tm_dots(col = "red", size = .07, shape = 8)
+  
+for( n in 1: length(dist_list)) {
+  us_map = us_map + 
+    tm_shape(dist_list[[n]]) +
+    tm_dots()
+}
+
+
+print(us_map)
+
+dev.off()
 # next steps
 # species list filter, 
 # bbc- only keep breeders

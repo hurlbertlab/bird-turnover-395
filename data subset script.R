@@ -61,9 +61,9 @@ bbc_counts = bbc_counts %>%
 
 # Adding state identifiers based on BBS statenum 
 state_conver = read.csv("state_convers.csv", header = TRUE, sep = ",")
-bbc_states = c("Connecticut", "Connecticut", "New York", "California", "California", "Connecticut", "District of Columbia", "Connecticut", "South Carolina", "Connecticut", "Ontario", "New York", "Ontario", "South Carolina", "Tennessee", "Ontario", "California")
+bbc_states = c("Connecticut", "Connecticut", "New York", "California", "California", "Connecticut", "District of Columbia", "Connecticut", "South Carolina", "Connecticut", "Ontario","California", "New York", "Ontario", "South Carolina", "Tennessee", "Ontario", "California")
 bbc_statenum = c("18", "18", "61", "14", "14", "18","22", "18", 
-                 "80","18", "68", "61", "68", "80", "82", "68", "14")
+                 "80","18", "68","14", "61", "68", "80", "82", "68", "14")
 }
 # Filter BBC censuses and sites ( >= 2 census years, >= 10 years apart)
 {
@@ -88,7 +88,7 @@ bbcSitesFin = bbc_sites %>%
   filter(siteID %in% bbcCensusFin$siteID) %>%
   distinct() %>%
   # removing siteid 177 because gap in bbs for y2 year
-  filter(siteID != 177) %>%
+  #filter(siteID != 177) %>%
   mutate(State = bbc_states) %>%
   mutate(StateNum = bbc_statenum)
 
@@ -106,7 +106,7 @@ bbcSitesFin$longitude = -(bbcSitesFin$longitude)
 sf_bbsRoutes = st_as_sf(bbs$routes, 
                    coords = c("longitude", "latitude"),
                    crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
-sf_bbsRoutes$stateroute = (sf_bbsRoutes$statenum * 100)+ sf_bbsRoutes$route
+sf_bbsRoutes$stateroute = (sf_bbsRoutes$statenum * 1000)+ sf_bbsRoutes$route
 
 sf_bbcSites = st_as_sf(bbcSitesFin,
                        coords = c("longitude", "latitude"),
@@ -146,39 +146,79 @@ for (n in 1: nrow(sf_bbcSites)) {
   
   site = df
   for (s in 1:nrow(df)) {
-   site$dist[s] = -st_distance(sf_bbcSites$geometry[n], 
+   site$dist[s] = st_distance(sf_bbcSites$geometry[n], 
                                df$geometry[s], "Great Circle")
    site$siteid[s] = sf_bbcSites$siteID[n]
   }
 
-  site = top_n(site, 10, site$dist)
-  site$dist = -site$dist
+  #site1 = top_n(site, 10, site$dist)
+  #if(sf_bbcSites[n,]$siteID == 177) {site1 = top_n(site, 20, site$dist)}
+
+  #site1$dist = -site1$dist
   
-  site$y1 = sf_bbcSites$y1[n]
-  site$y2 = sf_bbcSites$y2[n]
+  site1 = site %>% filter(dist < 100000)
   
-  dist_list[[n]] = site
+  site1$y1 = sf_bbcSites$y1[n]
+  site1$y2 = sf_bbcSites$y2[n]
+  
+  dist_list[[n]] = site1
 }
 
+bbsRepeated_list = list()
+for (n in 1: length(dist_list)) {
+  df = bbsWeather %>%
+    filter(stateroute %in% dist_list[[n]]$stateroute) %>%
+    mutate(early.app = (year >= dist_list[[n]]$y1[1]-2 & year <= dist_list[[n]]$y1[1]+2)) %>%
+    mutate(late.app = (year >= dist_list[[n]]$y2[1]-2 & year <= dist_list[[n]]$y2[1]+2))
+  
+    df1 = df %>% select(stateroute, early.app) %>%
+    filter(early.app == "TRUE")
+    
+    df2 = df %>% select(stateroute, late.app) %>%
+    filter(late.app == "TRUE")
+    
+    repeats = df1 %>% filter(stateroute %in% df2$stateroute)
+    df = df %>% filter(stateroute %in% repeats$stateroute)
+  bbsRepeated_list[[n]] = df
+}
 
 ## filter bbs by site and year, match counts to early/late bbc years
 # 5 year window (2 on either side of bbc)
 
 bbsCount = read.csv("bbs_count_filter.csv")
 
+
 counts_list = list()
 for (n in 1:length(dist_list)) {
   counts_list[[n]] = bbsCount %>% 
     select(-X) %>%
-    filter(stateroute %in% dist_list[[n]]$stateroute) %>%
+    filter(stateroute %in%  bbsRepeated_list[[n]]$stateroute) %>%
     filter(rpid == 101) %>%
     filter(staterouteyear %in% bbsWeather$staterouteyear) %>%
     mutate(siteid = dist_list[[n]]$siteid[1]) %>%
+    mutate(aou.route = ((aou*100000)+stateroute)) %>%
     filter((year >= dist_list[[n]]$y1[1]-2 & year <= dist_list[[n]]$y1[1]+2) |
              (year >= dist_list[[n]]$y2[1]-2 & year <= dist_list[[n]]$y2[1]+2))
 }
 
+##### add to speed up bird %>% mutate(aou.route = ((aou*100000)+stateroute)) %>% unique(aou.route)
+for (y in 1: length(counts_list)) {
+  filter(unique(aou.route))
+}
+for (n in 1: length(counts_list)) {
+  bird = counts_list[[n]]
+  bird$presence = NA
+  for (l in 1: nrow(counts_list[[n]])) {
+    df = filter(bbsWeather, bbsWeather$stateroute == bird$stateroute[l])
+    tot_survey = nrow(df)
+    
+    df2 = bbsCount
+    df2 = filter(df2, df2$stateroute == bird$stateroute[l], df2$aou == bird$aou[l])
+    tot_present = nrow(df2)
+    bird$presence[l] = (tot_present/tot_survey)
+  }
+  counts_list[[n]]= bird
+}
 #list of bbs routes for each bbc site (counts list filt by dist list)
 # bbcid column in counts
 # subset to max and min bbc census years, add y1 y2 and bbc id columns into bbs
-

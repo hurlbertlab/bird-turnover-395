@@ -231,6 +231,7 @@ for (n in 1: length(counts_list)) {
     df2 = bbsCount
     df2 = filter(df2, df2$stateroute == bird$stateroute[l], df2$aou == bird$aou[l])
     tot_present = nrow(df2)
+    bird$tot_survey = tot_survey
     bird$presence[l] = (tot_present/tot_survey)
   }
   bird = filter(bird, presence >= .33)

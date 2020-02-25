@@ -2,6 +2,8 @@
 
 library(dplyr)
 library(sf)
+
+# rdataretriever may not work, in this case download data files directly from USGS BBS website
 library(reticulate)
 use_condaenv("r-reticulate", require =TRUE)
 library(rdataretriever)
@@ -17,7 +19,7 @@ bbc_statenum_total = c("18", "18", "61", "14", "14", "18","22", "18",
                  "80","18", "68","14", "61", "68", "80", "82", "68", "14", "63", "27",
                   "46", "59", "72", "77", "47", "72", "87", "49") 
 
-# remove years before bbc, adding identifiers, isolating land birds
+# remove years before bbc, adding identifiers, isolating land birds 
 bbsCounts_filter = bbs$counts %>% 
   filter(year >= 1985) %>%
   filter(statenum %in% bbc_statenum_total) %>%

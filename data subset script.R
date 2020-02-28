@@ -96,6 +96,13 @@ for (s in 1:nrow(bbcSitesFin)) {
   bbcSitesFin$y1[s] = min(bbcCensusTemp$year)
   bbcSitesFin$y2[s] = max(bbcCensusTemp$year)
 }
+####
+crs.new = CRS("+proj=laea +lat_0=-100 +lon_0=6370997 +x_0=45 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 ")
+
+latlong = data.frame(long = -bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
+latlong = SpatialPoints(latlong, CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+latlong = spTransform(latlong, crs.new)
+df = raster::extract(elev, latlong)
 
 # Change to neg long values
 bbcSitesFin$longitude = -(bbcSitesFin$longitude)

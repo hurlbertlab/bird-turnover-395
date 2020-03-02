@@ -18,7 +18,7 @@ bbc_statenum_total = c("18", "18", "61", "14", "14", "18","22", "18",
                   "46", "59", "72", "77", "47", "72", "87", "49") 
 
 # remove years before bbc, adding identifiers, isolating land birds
-bbsCounts_filter = bbsCounts %>% #bbs$counts %>% 
+bbsCounts_filter = bbs$counts %>% 
   filter(year >= 1985) %>%
   filter(statenum %in% bbc_statenum_total) %>%
   mutate(stateroute = (statenum * 1000)+ route) %>% 

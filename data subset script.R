@@ -100,7 +100,8 @@ for (s in 1:nrow(bbcSitesFin)) {
 crs.new = CRS("+proj=laea +lat_0=-100 +lon_0=6370997 +x_0=45 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 ")
 
 latlong = data.frame(long = -bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
-latlong = SpatialPoints(latlong, CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+sp::coordinates(latlong) = c(latlong$long, latlong$lat)
+proj4string(latlong) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 latlong = spTransform(latlong, crs.new)
 df = raster::extract(elev, latlong)
 
@@ -118,6 +119,11 @@ sf_bbsRoutes$stateroute = (sf_bbsRoutes$statenum * 1000)+ sf_bbsRoutes$route
 sf_bbcSites = st_as_sf(bbcSitesFin,
                        coords = c("longitude", "latitude"),
                        crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+
+longlat = data.frame(long = bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
+sp_longlat = SpatialPoints(longlat, proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"), bbox = NULL)
+sp_longlat = spTransform(sp_longlat, CRSobj = crs.new)
+df= extract(elev, sp_longlat)
 #df = sf_bbcSites %>% select(geometry) %>% get_elev_point()
 #sf_bbcSites$elev_m = df$elevation
 #######

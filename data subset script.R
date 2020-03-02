@@ -21,7 +21,7 @@ bbc_counts = read.csv("bbc data/bbc_counts.csv", header = TRUE, sep = ",")
 bbc_sites = read.csv("bbc data/bbc_sites.csv", header = TRUE, sep = ",")
 
 # Read in elevation data
-elev <- raster("Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
+elev <- raster("elevation data/Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
 
 # Species name conversion - Code via Di Cecco
 # Match species common names to BBS species list
@@ -97,12 +97,12 @@ for (s in 1:nrow(bbcSitesFin)) {
   bbcSitesFin$y2[s] = max(bbcCensusTemp$year)
 }
 ####
-crs.new = CRS("+proj=laea +lat_0=-100 +lon_0=6370997 +x_0=45 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 ")
+crs.new = CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
 
 latlong = data.frame(long = -bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
-sp::coordinates(latlong) = c(latlong$long, latlong$lat)
+sp::coordinates(latlong) = c("long", "lat")
 proj4string(latlong) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
-latlong = spTransform(latlong, crs.new)
+latlong2 = spTransform(latlong, crs.new)
 df = raster::extract(elev, latlong)
 
 # Change to neg long values

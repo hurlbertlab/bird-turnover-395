@@ -1,0 +1,8 @@
+2/25
+Completed: transfer project w BBS files onto lap computer
+Goals: elevation calculation and filter in data subset script: extract function
+- spTransform 
+converting coordinate systems 
+need to determine whether BBC coord system was correctly identified, transformation may be incorrect bc not proper starting system
+
+reorganize subset script/add step clarification

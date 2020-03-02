@@ -7,16 +7,21 @@
 # from 10 closest BBS sites
 
 # Library
+library(elevatr)
+library(raster)
 library(dplyr) 
 library(sf)
-library(elevatr)
+library(lwgeom)
 
 
 # Read in Breeding Bird Census (BBC) data
 
-bbc_censuses = read.csv("bbc_censuses.csv", header = TRUE, sep = ",")
-bbc_counts = read.csv("bbc_counts.csv", header = TRUE, sep = ",")
-bbc_sites = read.csv("bbc_sites.csv", header = TRUE, sep = ",")
+bbc_censuses = read.csv("bbc data/bbc_censuses.csv", header = TRUE, sep = ",")
+bbc_counts = read.csv("bbc data/bbc_counts.csv", header = TRUE, sep = ",")
+bbc_sites = read.csv("bbc data/bbc_sites.csv", header = TRUE, sep = ",")
+
+# Read in elevation data
+elev <- raster("Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
 
 # Species name conversion - Code via Di Cecco
 # Match species common names to BBS species list
@@ -52,13 +57,6 @@ for(spp in bbc_counts$species) {
   }
 }
 
-# isolating land birds 
-bbc_counts = bbc_counts %>% 
-  filter(aou > 2880) %>%
-  filter(aou < 3650 | aou > 3810) %>%
-  filter(aou < 3900 | aou > 3910) %>%
-  filter(aou < 4160 | aou > 4210) %>%
-  filter(aou != 7010) %>%
 
 # Adding state identifiers based on BBS statenum 
 state_conver = read.csv("state_convers.csv", header = TRUE, sep = ",")
@@ -85,7 +83,7 @@ bbcCensusFin = bbc_censuses %>%
 }
 
 bbcSitesFin = bbc_sites %>%
-  select(siteID:longitude) %>%
+  dplyr::select(siteID:longitude) %>%
   filter(siteID %in% bbcCensusFin$siteID) %>%
   distinct() %>%
   # removing siteid 177 because gap in bbs for y2 year
@@ -98,6 +96,14 @@ for (s in 1:nrow(bbcSitesFin)) {
   bbcSitesFin$y1[s] = min(bbcCensusTemp$year)
   bbcSitesFin$y2[s] = max(bbcCensusTemp$year)
 }
+####
+crs.new = CRS("+proj=laea +lat_0=-100 +lon_0=6370997 +x_0=45 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 ")
+
+latlong = data.frame(long = -bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
+sp::coordinates(latlong) = c(latlong$long, latlong$lat)
+proj4string(latlong) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+latlong = spTransform(latlong, crs.new)
+df = raster::extract(elev, latlong)
 
 # Change to neg long values
 bbcSitesFin$longitude = -(bbcSitesFin$longitude)
@@ -113,10 +119,17 @@ sf_bbsRoutes$stateroute = (sf_bbsRoutes$statenum * 1000)+ sf_bbsRoutes$route
 sf_bbcSites = st_as_sf(bbcSitesFin,
                        coords = c("longitude", "latitude"),
                        crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
-df = sf_bbcSites %>% select(geometry) %>% get_elev_point()
-sf_bbcSites$elev_m = df$elevation
 
-sf_bbcSites = filter(sf_bbcSites, State != "Ontario")
+longlat = data.frame(long = bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
+sp_longlat = SpatialPoints(longlat, proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"), bbox = NULL)
+sp_longlat = spTransform(sp_longlat, CRSobj = crs.new)
+df= extract(elev, sp_longlat)
+#df = sf_bbcSites %>% select(geometry) %>% get_elev_point()
+#sf_bbcSites$elev_m = df$elevation
+#######
+df = raster::extract(elev, latlong)
+#sf_bbcSites$elev_m = df$elevation
+
 }
 # Area specific BBS Datasets
 {
@@ -133,8 +146,8 @@ conn_bbs = st_as_sf(filter(sf_bbsRoutes, countrynum == "840" & statenum == "18"|
 ny_bbs = st_as_sf(filter(sf_bbsRoutes, statenum == "61"|statenum == "72" |
                   statenum == "59"|statenum == "18"|statenum == "47"|
                   statenum == "87"|statenum == "68"))
-#ont_bbs = st_as_sf(filter(sf_bbsRoutes, statenum == "68" | 
-                            #statenum == "61"|statenum == "49"))
+ont_bbs = st_as_sf(filter(sf_bbsRoutes, statenum == "68" | 
+                            statenum == "61"|statenum == "49"))
 }
 # Dist calculations 
 # list of dataframes for each site with dist calc for each route in surrounding area
@@ -147,7 +160,7 @@ for (n in 1: nrow(sf_bbcSites)) {
   if (state == "14") {df = cali_bbs}
   if (state == "22") {df = dc_bbs}
   if (state == "80") {df = sc_bbs}
-  #if (state == "68") {df = ont_bbs}
+  if (state == "68") {df = ont_bbs}
   if (state == "82") {df = tenn_bbs}
   
   site = df
@@ -170,15 +183,29 @@ for (n in 1: nrow(sf_bbcSites)) {
   dist_list[[n]] = site1
 }
 ## calculate elevation for bbs routes and filter to within +/- 100 m of bbc elev
+#for (n in 1:length(dist_list)) {
+ # df = dist_list[[n]] %>% select(geometry) %>% get_elev_point()
+  #dist_list[[n]]$elev_m = df$elevation
+#}
+#dist_list_elev = dist_list
+#for(n in 1: length(dist_list)) {
+ # dist_list_elev[[n]] = filter(dist_list[[n]], (elev_m <= sf_bbcSites$elev_m[n] + 100) &
+  #         (elev_m >= sf_bbcSites$elev_m[n] - 100))
+#}
+
+
+
+
 for (n in 1:length(dist_list)) {
-  df = dist_list[[n]] %>% select(geometry) %>% get_elev_point()
-  dist_list[[n]]$elev_m = df$elevation
+ df = extract(elev, dist_list[[n]]$geometry)
+ dist_list[[n]]$elev_m = df$elevation
 }
 dist_list_elev = dist_list
 for(n in 1: length(dist_list)) {
-  dist_list_elev[[n]] = filter(dist_list[[n]], (elev_m <= sf_bbcSites$elev_m[n] + 100) &
-           (elev_m >= sf_bbcSites$elev_m[n] - 100))
+ dist_list_elev[[n]] = filter(dist_list[[n]], (elev_m <= sf_bbcSites$elev_m[n] + 100) &
+         (elev_m >= sf_bbcSites$elev_m[n] - 100))
 }
+
 
 bbsRepeated_list = list()
 for (n in 1: length(dist_list)) {
@@ -187,10 +214,10 @@ for (n in 1: length(dist_list)) {
     mutate(early.app = (year >= dist_list[[n]]$y1[1]-2 & year <= dist_list[[n]]$y1[1]+2)) %>%
     mutate(late.app = (year >= dist_list[[n]]$y2[1]-2 & year <= dist_list[[n]]$y2[1]+2))
   
-    df1 = df %>% select(stateroute, early.app) %>%
+    df1 = df %>% dplyr::select(stateroute, early.app) %>%
     filter(early.app == "TRUE")
     
-    df2 = df %>% select(stateroute, late.app) %>%
+    df2 = df %>% dplyr::select(stateroute, late.app) %>%
     filter(late.app == "TRUE")
     
     repeats = df1 %>% filter(stateroute %in% df2$stateroute)
@@ -207,7 +234,7 @@ bbsCount = read.csv("bbs_count_filter.csv")
 counts_list = list()
 for (n in 1:length(dist_list)) {
   counts_list[[n]] = bbsCount %>% 
-    select(-X) %>%
+    dplyr::select(-X) %>%
     filter(stateroute %in%  bbsRepeated_list[[n]]$stateroute) %>%
     filter(rpid == 101) %>%
     filter(staterouteyear %in% bbsWeather$staterouteyear) %>%
@@ -217,7 +244,7 @@ for (n in 1:length(dist_list)) {
              (year >= dist_list[[n]]$y2[1]-2 & year <= dist_list[[n]]$y2[1]+2))
 }
 
-##### add to speed up bird %>% mutate(aou.route = ((aou*100000)+stateroute)) %>% unique(aou.route)
+##### filter for transience, (e.g. present in 33% or more surveys)
 
 for (n in 1: length(counts_list)) {
   bird = counts_list[[n]] %>%

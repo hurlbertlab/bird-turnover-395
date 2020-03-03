@@ -35,4 +35,4 @@ bbsCounts_filter = bbs$counts %>%
 
 
 write.csv(bbsCounts_filter, file = "bbs_count_filter.csv")
-
+write.csv(bbsWeather, file = "bbs_weather.csv")

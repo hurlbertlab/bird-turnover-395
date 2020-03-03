@@ -6,3 +6,11 @@ converting coordinate systems
 need to determine whether BBC coord system was correctly identified, transformation may be incorrect bc not proper starting system
 
 reorganize subset script/add step clarification
+
+3/3
+fixed elev mostly
+cali coming up NA, site 3 and 18 repeats with different name
+
+run BBS to save weather csv
+
+

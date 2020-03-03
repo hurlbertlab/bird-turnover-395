@@ -7,7 +7,6 @@
 # from 10 closest BBS sites
 
 # Library
-library(elevatr)
 library(raster)
 library(dplyr) 
 library(sf)
@@ -20,7 +19,7 @@ bbc_censuses = read.csv("bbc data/bbc_censuses.csv", header = TRUE, sep = ",")
 bbc_counts = read.csv("bbc data/bbc_counts.csv", header = TRUE, sep = ",")
 bbc_sites = read.csv("bbc data/bbc_sites.csv", header = TRUE, sep = ",")
 
-
+bbsWeather = read.csv("bbs_weather.csv")
 
 # Species name conversion - Code via Di Cecco
 # Match species common names to BBS species list
@@ -88,7 +87,8 @@ bbcSitesFin = bbc_sites %>%
   # removing siteid 177 because gap in bbs for y2 year
   #filter(siteID != 177) %>%
   mutate(State = bbc_states) %>%
-  mutate(StateNum = bbc_statenum)
+  mutate(StateNum = bbc_statenum) %>%
+  mutate(LandCover = bbcSiteFinNLCD)
 
 for (s in 1:nrow(bbcSitesFin)) {
   bbcCensusTemp= filter(bbcCensusFin, siteID == bbcSitesFin$siteID[s])

@@ -20,16 +20,7 @@ bbc_censuses = read.csv("bbc data/bbc_censuses.csv", header = TRUE, sep = ",")
 bbc_counts = read.csv("bbc data/bbc_counts.csv", header = TRUE, sep = ",")
 bbc_sites = read.csv("bbc data/bbc_sites.csv", header = TRUE, sep = ",")
 
-# Read in elevation data
-elev <- raster("Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
-proj4string(elev) = CRS("+proj=laea +lat_0=45.5 +lon_0=-114.125 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
 
-elev.geog = projectRaster(elev, crs = CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
-proj4string(elev) = CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
-latlong2 = spTransform(latlong, CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
-plot(elev)
-points(latlong2, pch = 16)
-points(-bbcSitesFin$longitude, bbcSitesFin$latitude, pch = 16)
 
 # Species name conversion - Code via Di Cecco
 # Match species common names to BBS species list
@@ -105,16 +96,19 @@ for (s in 1:nrow(bbcSitesFin)) {
   bbcSitesFin$y2[s] = max(bbcCensusTemp$year)
 }
 ####
-crs.new = CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
+# Read in elevation data
 
-crs(elev) = crs.new
+elev <- raster("Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
 proj4string(elev) = CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
+
 latlong = data.frame(long = -bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
 sp::coordinates(latlong) = c("long", "lat")
 proj4string(latlong) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
-latlong2 = spTransform(latlong, crs.new)
-df = raster::extract(elev, latlong2)
+latlong2 = spTransform(latlong, CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
+plot(elev)
+points(latlong2)
 
+df = extract(elev, latlong2)
 # Change to neg long values
 bbcSitesFin$longitude = -(bbcSitesFin$longitude)
 
@@ -130,12 +124,6 @@ sf_bbcSites = st_as_sf(bbcSitesFin,
                        coords = c("longitude", "latitude"),
                        crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 
-longlat = data.frame(long = bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
-sp_longlat = SpatialPoints(longlat, proj4string = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"), bbox = NULL)
-sp_longlat = spTransform(sp_longlat, CRSobj = crs.new)
-df= extract(elev, sp_longlat)
-#df = sf_bbcSites %>% select(geometry) %>% get_elev_point()
-#sf_bbcSites$elev_m = df$elevation
 #######
 df = raster::extract(elev, latlong)
 #sf_bbcSites$elev_m = df$elevation

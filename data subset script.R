@@ -99,11 +99,13 @@ for (s in 1:nrow(bbcSitesFin)) {
 ####
 crs.new = CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
 
+crs(elev) = crs.new
+proj4string(elev) = CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
 latlong = data.frame(long = -bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
 sp::coordinates(latlong) = c("long", "lat")
 proj4string(latlong) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 latlong2 = spTransform(latlong, crs.new)
-df = raster::extract(elev, latlong)
+df = raster::extract(elev, latlong2)
 
 # Change to neg long values
 bbcSitesFin$longitude = -(bbcSitesFin$longitude)

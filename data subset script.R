@@ -21,7 +21,7 @@ bbc_counts = read.csv("bbc data/bbc_counts.csv", header = TRUE, sep = ",")
 bbc_sites = read.csv("bbc data/bbc_sites.csv", header = TRUE, sep = ",")
 
 # Read in elevation data
-elev <- raster("elevation data/Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
+elev <- raster("Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
 
 # Species name conversion - Code via Di Cecco
 # Match species common names to BBS species list

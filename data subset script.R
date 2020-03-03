@@ -22,6 +22,14 @@ bbc_sites = read.csv("bbc data/bbc_sites.csv", header = TRUE, sep = ",")
 
 # Read in elevation data
 elev <- raster("Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
+proj4string(elev) = CRS("+proj=laea +lat_0=45.5 +lon_0=-114.125 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
+
+elev.geog = projectRaster(elev, crs = CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
+proj4string(elev) = CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
+latlong2 = spTransform(latlong, CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
+plot(elev)
+points(latlong2, pch = 16)
+points(-bbcSitesFin$longitude, bbcSitesFin$latitude, pch = 16)
 
 # Species name conversion - Code via Di Cecco
 # Match species common names to BBS species list

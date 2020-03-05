@@ -113,13 +113,14 @@ plot(elev)
 points(latlong2)
 
 bbcElev = extract(elev, latlong2)
-bbcSitesFin = mutate(bbcSitesFin, elev = bbcElev)
+bbcSitesFin = mutate(bbcSitesFin, elev_m = bbcElev)
 
 # Create spatial data frame
 {
 sf_bbsRoutes = st_as_sf(bbs$routes, 
                    coords = c("longitude", "latitude"),
                    crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+sf_bbsRoutes = mutate(sf_bbsRoutes, longitude = bbs$routes$longitude, latitude = bbs$routes$latitude)
 sf_bbsRoutes$stateroute = (sf_bbsRoutes$statenum * 1000)+ sf_bbsRoutes$route
 
 
@@ -183,13 +184,27 @@ for (n in 1: nrow(sf_bbcSites)) {
   dist_list[[n]] = site1
 }
 
-# filter bbs sites within 100m elevation above/below bbc site
+# calculate elevation of each bbs route then filter to +/- 100m
 dist_list_elev = dist_list
 for(n in 1: length(dist_list)) {
- dist_list_elev[[n]] = filter(dist_list[[n]], (elev_m <= sf_bbcSites$elev_m[n] + 100) &
-         (elev_m >= sf_bbcSites$elev_m[n] - 100))
+  print(n)
+  latlong = st_coordinates(dist_list[[n]])
+  latlong2 = SpatialPoints(latlong, CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
+  latlong3 = spTransform(latlong2, CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
+  #plot(elev)
+  #points(latlong3)
+  bbsElev = extract(elev, latlong3)
+  dist_list[[n]] = mutate(dist_list[[n]], elev_m = bbsElev)
 }
 
+for (n in 1:length(dist_list)) {
+  dist_list_elev[[n]] = filter(dist_list[[n]], (elev_m <= sf_bbcSites$elev_m[n] + 100) &
+                                 (elev_m >= sf_bbcSites$elev_m[n] - 100))
+}
+## store for later
+dist_list_elev[[n]] = filter(dist_list[[n]], (elev_m <= sf_bbcSites$elev_m[n] + 100) &
+                               (elev_m >= sf_bbcSites$elev_m[n] - 100))
+##
 # check whether bbs sites sampled at early and late period
 bbsRepeated_list = list()
 for (n in 1: length(dist_list)) {

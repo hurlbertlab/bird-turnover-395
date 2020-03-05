@@ -13,4 +13,10 @@ cali coming up NA, site 3 and 18 repeats with different name
 
 run BBS to save weather csv
 
+3/5
 
+filtering bbs by elev now working
+
+need to fix NA's 
+how to write/save final counts list
+change final count list loop to use dist_list_elev 

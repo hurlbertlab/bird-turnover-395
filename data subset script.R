@@ -55,13 +55,13 @@ for(spp in bbc_counts$species) {
   }
 }
 
-
+}
 # Adding state identifiers based on BBS statenum 
 state_conver = read.csv("state_convers.csv", header = TRUE, sep = ",")
 bbc_states = c("Connecticut", "Connecticut", "New York", "California", "California", "Connecticut", "District of Columbia", "Connecticut", "South Carolina", "Connecticut", "Ontario","California", "New York", "Ontario", "South Carolina", "Tennessee", "Ontario", "California")
 bbc_statenum = c("18", "18", "61", "14", "14", "18","22", "18", 
                  "80","18", "68","14", "61", "68", "80", "82", "68", "14")
-}
+
 # Filter BBC censuses and sites ( >= 2 census years, >= 10 years apart)
 {
 bbcCountTemp <- data.frame(siteID_uni = unique(bbc_censuses$siteID), 
@@ -79,6 +79,7 @@ bbcCountTemp = bbcCountTemp %>% filter(count>= 2, time_range>=10)
 bbcCensusFin = bbc_censuses %>%
   filter(siteID %in% bbcCountTemp$siteID_uni)
 }
+bbcSiteFinNLCD = c("forest", "forest", "forest, agriculture", "shrubland", "shrubland", "shrubland", "forest", "forest", "forest", "forest", "grassland", "wetland", "forest", "grassland", "forest", "forest", "grassland", "shrubland")
 
 bbcSitesFin = bbc_sites %>%
   dplyr::select(siteID:longitude) %>%
@@ -86,31 +87,33 @@ bbcSitesFin = bbc_sites %>%
   distinct() %>%
   # removing siteid 177 because gap in bbs for y2 year
   #filter(siteID != 177) %>%
-  mutate(State = bbc_states) %>%
-  mutate(StateNum = bbc_statenum) %>%
-  mutate(LandCover = bbcSiteFinNLCD)
+  mutate(state = bbc_states) %>%
+  mutate(statenum = bbc_statenum) %>%
+  mutate(landcover = bbcSiteFinNLCD)
 
 for (s in 1:nrow(bbcSitesFin)) {
   bbcCensusTemp= filter(bbcCensusFin, siteID == bbcSitesFin$siteID[s])
   bbcSitesFin$y1[s] = min(bbcCensusTemp$year)
   bbcSitesFin$y2[s] = max(bbcCensusTemp$year)
 }
+# Change to neg long values
+bbcSitesFin$longitude = -(bbcSitesFin$longitude)
+
 ####
 # Read in elevation data
 
 elev <- raster("Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
 proj4string(elev) = CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
 
-latlong = data.frame(long = -bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
+latlong = data.frame(long = bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
 sp::coordinates(latlong) = c("long", "lat")
 proj4string(latlong) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 latlong2 = spTransform(latlong, CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
 plot(elev)
 points(latlong2)
 
-df = extract(elev, latlong2)
-# Change to neg long values
-bbcSitesFin$longitude = -(bbcSitesFin$longitude)
+bbcElev = extract(elev, latlong2)
+bbcSitesFin = mutate(bbcSitesFin, elev = bbcElev)
 
 # Create spatial data frame
 {
@@ -125,8 +128,7 @@ sf_bbcSites = st_as_sf(bbcSitesFin,
                        crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 
 #######
-df = raster::extract(elev, latlong)
-#sf_bbcSites$elev_m = df$elevation
+
 
 }
 # Area specific BBS Datasets
@@ -152,7 +154,7 @@ ont_bbs = st_as_sf(filter(sf_bbsRoutes, statenum == "68" |
  
 dist_list = list()
 for (n in 1: nrow(sf_bbcSites)) {
-  state = sf_bbcSites$StateNum[n]
+  state = sf_bbcSites$statenum[n]
   if (state == "18") {df = conn_bbs}
   if (state == "61") {df = ny_bbs}
   if (state == "14") {df = cali_bbs}
@@ -180,31 +182,15 @@ for (n in 1: nrow(sf_bbcSites)) {
   
   dist_list[[n]] = site1
 }
-## calculate elevation for bbs routes and filter to within +/- 100 m of bbc elev
-#for (n in 1:length(dist_list)) {
- # df = dist_list[[n]] %>% select(geometry) %>% get_elev_point()
-  #dist_list[[n]]$elev_m = df$elevation
-#}
-#dist_list_elev = dist_list
-#for(n in 1: length(dist_list)) {
- # dist_list_elev[[n]] = filter(dist_list[[n]], (elev_m <= sf_bbcSites$elev_m[n] + 100) &
-  #         (elev_m >= sf_bbcSites$elev_m[n] - 100))
-#}
 
-
-
-
-for (n in 1:length(dist_list)) {
- df = extract(elev, dist_list[[n]]$geometry)
- dist_list[[n]]$elev_m = df$elevation
-}
+# filter bbs sites within 100m elevation above/below bbc site
 dist_list_elev = dist_list
 for(n in 1: length(dist_list)) {
  dist_list_elev[[n]] = filter(dist_list[[n]], (elev_m <= sf_bbcSites$elev_m[n] + 100) &
          (elev_m >= sf_bbcSites$elev_m[n] - 100))
 }
 
-
+# check whether bbs sites sampled at early and late period
 bbsRepeated_list = list()
 for (n in 1: length(dist_list)) {
   df = bbsWeather %>%

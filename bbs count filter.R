@@ -32,7 +32,8 @@ bbsCounts_filter = bbs$counts %>%
   filter(aou < 4160 | aou > 4210) %>%
   filter(aou != 7010)
 
+bbsRoutes = bbs$routes
 
-
+write.csv(bbsRoutes, file = "bbs_routes.csv")
 write.csv(bbsCounts_filter, file = "bbs_count_filter.csv")
 write.csv(bbsWeather, file = "bbs_weather.csv")

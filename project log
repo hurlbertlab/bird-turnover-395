@@ -18,5 +18,7 @@ run BBS to save weather csv
 filtering bbs by elev now working
 
 need to fix NA's 
-how to write/save final counts list
+how to write/save final counts list 
+* convert to data frame, save as csv
+*data.frame, site var connecting 
 change final count list loop to use dist_list_elev 

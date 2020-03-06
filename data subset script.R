@@ -19,7 +19,20 @@ bbc_censuses = read.csv("bbc data/bbc_censuses.csv", header = TRUE, sep = ",")
 bbc_counts = read.csv("bbc data/bbc_counts.csv", header = TRUE, sep = ",")
 bbc_sites = read.csv("bbc data/bbc_sites.csv", header = TRUE, sep = ",")
 
+#new_palo_station_A_lat = 
+#new_palo_station_A_lon = 
+#new_palo_station_B_lat = 
+#new_palo_station_B_lon = 
+
+#bbc_sites_alt = bbc_sites
+#bbc_sites_alt$latitude[162:172] = new_palo_station_A_lat
+#bbc_sites_alt$longitude[162:172] = new_palo_station_A_lon
+#bbc_sites_alt$latitude[173:178] = new_palo_station_B_lat
+#bbc_sites_alt$longitude[173:178] = new_palo_station_B_lon
+
+
 bbsWeather = read.csv("bbs_weather.csv")
+bbsRoutes = read.csv("bbs_routes.csv")
 
 # Species name conversion - Code via Di Cecco
 # Match species common names to BBS species list
@@ -103,12 +116,12 @@ bbcSitesFin$longitude = -(bbcSitesFin$longitude)
 # Read in elevation data
 
 elev <- raster("Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
-proj4string(elev) = CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
+proj4string(elev) = CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
 
 latlong = data.frame(long = bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
 sp::coordinates(latlong) = c("long", "lat")
 proj4string(latlong) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
-latlong2 = spTransform(latlong, CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
+latlong2 = spTransform(latlong, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
 plot(elev)
 points(latlong2)
 
@@ -117,10 +130,10 @@ bbcSitesFin = mutate(bbcSitesFin, elev_m = bbcElev)
 
 # Create spatial data frame
 {
-sf_bbsRoutes = st_as_sf(bbs$routes, 
+sf_bbsRoutes = st_as_sf(bbsRoutes, 
                    coords = c("longitude", "latitude"),
                    crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
-sf_bbsRoutes = mutate(sf_bbsRoutes, longitude = bbs$routes$longitude, latitude = bbs$routes$latitude)
+sf_bbsRoutes = mutate(sf_bbsRoutes, longitude = bbsRoutes$longitude, latitude = bbsRoutes$latitude)
 sf_bbsRoutes$stateroute = (sf_bbsRoutes$statenum * 1000)+ sf_bbsRoutes$route
 
 
@@ -187,10 +200,9 @@ for (n in 1: nrow(sf_bbcSites)) {
 # calculate elevation of each bbs route then filter to +/- 100m
 dist_list_elev = dist_list
 for(n in 1: length(dist_list)) {
-  print(n)
   latlong = st_coordinates(dist_list[[n]])
   latlong2 = SpatialPoints(latlong, CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
-  latlong3 = spTransform(latlong2, CRS("+proj=laea +lat_0=45.5 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
+  latlong3 = spTransform(latlong2, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
   #plot(elev)
   #points(latlong3)
   bbsElev = extract(elev, latlong3)
@@ -201,17 +213,15 @@ for (n in 1:length(dist_list)) {
   dist_list_elev[[n]] = filter(dist_list[[n]], (elev_m <= sf_bbcSites$elev_m[n] + 100) &
                                  (elev_m >= sf_bbcSites$elev_m[n] - 100))
 }
-## store for later
-dist_list_elev[[n]] = filter(dist_list[[n]], (elev_m <= sf_bbcSites$elev_m[n] + 100) &
-                               (elev_m >= sf_bbcSites$elev_m[n] - 100))
+
 ##
 # check whether bbs sites sampled at early and late period
 bbsRepeated_list = list()
-for (n in 1: length(dist_list)) {
+for (n in 1: length(dist_list_elev)) {
   df = bbsWeather %>%
-    filter(stateroute %in% dist_list[[n]]$stateroute) %>%
-    mutate(early.app = (year >= dist_list[[n]]$y1[1]-2 & year <= dist_list[[n]]$y1[1]+2)) %>%
-    mutate(late.app = (year >= dist_list[[n]]$y2[1]-2 & year <= dist_list[[n]]$y2[1]+2))
+    filter(stateroute %in% dist_list_elev[[n]]$stateroute) %>%
+    mutate(early.app = (year >= dist_list_elev[[n]]$y1[1]-2 & year <= dist_list_elev[[n]]$y1[1]+2)) %>%
+    mutate(late.app = (year >= dist_list_elev[[n]]$y2[1]-2 & year <= dist_list_elev[[n]]$y2[1]+2))
   
     df1 = df %>% dplyr::select(stateroute, early.app) %>%
     filter(early.app == "TRUE")
@@ -231,7 +241,7 @@ bbsCount = read.csv("bbs_count_filter.csv")
 
 
 counts_list = list()
-for (n in 1:length(dist_list)) {
+for (n in 1:length(dist_list_elev)) {
   counts_list[[n]] = bbsCount %>% 
     dplyr::select(-X) %>%
     filter(stateroute %in%  bbsRepeated_list[[n]]$stateroute) %>%
@@ -248,7 +258,8 @@ for (n in 1:length(dist_list)) {
 for (n in 1: length(counts_list)) {
   bird = counts_list[[n]] %>%
     distinct(stateroute, aou) %>%
-    mutate(aou.route = ((aou*100000)+stateroute))
+    mutate(aou.route = ((aou*100000)+stateroute)) %>%
+    mutate(bbc.site = n)
   bird$presence = NA
   for (l in 1: nrow(bird)) {
     df = filter(bbsWeather, bbsWeather$stateroute == bird$stateroute[l])
@@ -257,13 +268,15 @@ for (n in 1: length(counts_list)) {
     df2 = bbsCount
     df2 = filter(df2, df2$stateroute == bird$stateroute[l], df2$aou == bird$aou[l])
     tot_present = nrow(df2)
-    bird$tot_survey = tot_survey
+    bird$tot_survey[l] = tot_survey
     bird$presence[l] = (tot_present/tot_survey)
   }
   bird = filter(bird, presence >= .33)
   counts_list[[n]]= filter(counts_list[[n]],
                            counts_list[[n]]$aou.route %in% bird$aou.route) 
 }
+
+counts_df = as.data.frame()
 #list of bbs routes for each bbc site (counts list filt by dist list)
 # bbcid column in counts
 # subset to max and min bbc census years, add y1 y2 and bbc id columns into bbs

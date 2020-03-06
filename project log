@@ -22,3 +22,16 @@ how to write/save final counts list
 * convert to data frame, save as csv
 *data.frame, site var connecting 
 change final count list loop to use dist_list_elev 
+
+3/6
+change cali bbc coords in data * document clearly *
+(dist_list_elev reading 0 results bc of NA in elev right now)
+
+** transient check throwing errors, unknown origin
+
+California Palomarin station/Bolinas quadrangle latitude/longitude column values do not match coordinates in description. Coordinates in column data plot as offshore locations whereas coordinates in description plot to palomarin station in google earth. Column data altered to match description coordinates for all sites. Original values saved in storage column. Coastal scrub and Grazed coastal scrub site renamed to coastal scrub A as coordinates match in both column data and description coordinates.
+
+Inferred Actual Site Coordinates: 37.929934, -122.735254
+Cannot distinguish between three sites with given coordinates, attempt to triangulate with location details in American Birds journal
+Coastal Scrub, Disturbed Coastal Scrub A and Disturbed Coastal Scrub B 1972: https://sora.unm.edu/sites/default/files/Pages%20from%20am_b_v25_n6_08_breeding_census_41-50_0.pdf (pg 1002-1003)
+Coastal Scrub A and B 1995: https://sora.unm.edu/sites/default/files/journals/jfo/v066s01/p0033-p0117.pdf (pg 102-104)

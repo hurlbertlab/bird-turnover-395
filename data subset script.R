@@ -249,13 +249,15 @@ for (n in 1:length(dist_list_elev)) {
     filter(staterouteyear %in% bbsWeather$staterouteyear) %>%
     mutate(siteid = dist_list[[n]]$siteid[1]) %>%
     mutate(aou.route = ((aou*100000)+stateroute)) %>%
+    mutate(site = n) %>%
     filter((year >= dist_list[[n]]$y1[1]-2 & year <= dist_list[[n]]$y1[1]+2) |
              (year >= dist_list[[n]]$y2[1]-2 & year <= dist_list[[n]]$y2[1]+2))
 }
 
 ##### filter for transience, (e.g. present in 33% or more surveys)
-
+counts_list_final = list()
 for (n in 1: length(counts_list)) {
+  print(n)
   bird = counts_list[[n]] %>%
     distinct(stateroute, aou) %>%
     mutate(aou.route = ((aou*100000)+stateroute)) %>%
@@ -272,11 +274,12 @@ for (n in 1: length(counts_list)) {
     bird$presence[l] = (tot_present/tot_survey)
   }
   bird = filter(bird, presence >= .33)
-  counts_list[[n]]= filter(counts_list[[n]],
+  counts_list_final[[n]]= filter(counts_list[[n]],
                            counts_list[[n]]$aou.route %in% bird$aou.route) 
 }
 
-counts_df = as.data.frame()
+counts_df = bind_rows(counts_list)
+subset_bbsCounts = write.csv(counts_df, "subset_bbsCounts.csv")
 #list of bbs routes for each bbc site (counts list filt by dist list)
 # bbcid column in counts
 # subset to max and min bbc census years, add y1 y2 and bbc id columns into bbs

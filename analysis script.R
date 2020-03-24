@@ -84,3 +84,6 @@ for (n in 1: length(counts_list)) {
   counts_list[[n]] = filter(counts_list[[n]], aou %in% occurrence1$aou |aou %in% occurrence2$aou)
 }
 
+landcover_US = read.csv("fragmentation_indices_nlcd_simplified.csv")
+landcover_Can = read.csv("fragmentation_indices_canada.csv")
+

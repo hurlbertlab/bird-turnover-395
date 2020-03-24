@@ -40,3 +40,12 @@ Coastal Scrub A and B 1995: https://sora.unm.edu/sites/default/files/journals/jf
 coords issue unresolved
 
 transience issue due to 0 inputs for points without elevation
+
+3/24
+issue resolved where dropbox caused process error
+
+coords issue unresolved
+
+added nlcd land class csv into analysis script
+
+need to count individuals seen at each bbc and bbs and put into graphic

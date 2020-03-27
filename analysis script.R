@@ -97,6 +97,10 @@ landcover_US_2001 = landcover_US %>%
   filter(year == "2001") %>%
   filter(stateroute %in% subset_bbsRoutes)
 
+for (n in 1: nrow(landcover_US_2001)) {
+  x = landcover_US_2001
+}
+
   summarise(max(prop.landscape))
 
 for(n in 1: nrow(subset_bbsRoutes)) {
@@ -105,7 +109,8 @@ for(n in 1: nrow(subset_bbsRoutes)) {
   
   for(l in 1: nrow(df)) {
     df2 = filter(df, prop.landscape == max_land.prop)
-    subset_bbsRoutes[n]$landcover = df2[1]$class
+    x = df2[1]$class
+    subset_bbsRoutes[n]$landcover = newcode %>% filter(code == x) %>% newcode$legend[1]
   }
   
   subset_bbsRoutes[,n]$landcover = 

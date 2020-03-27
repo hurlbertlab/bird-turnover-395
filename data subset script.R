@@ -122,8 +122,8 @@ latlong = data.frame(long = bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
 sp::coordinates(latlong) = c("long", "lat")
 proj4string(latlong) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 latlong2 = spTransform(latlong, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
-plot(elev)
-points(latlong2)
+# plot(elev)
+# points(latlong2)
 
 bbcElev = extract(elev, latlong2)
 bbcSitesFin = mutate(bbcSitesFin, elev_m = bbcElev)
@@ -217,6 +217,7 @@ for (n in 1:length(dist_list)) {
 ##
 # check whether bbs sites sampled at early and late period
 bbsRepeated_list = list()
+bbsRoutes_fin = list()
 for (n in 1: length(dist_list_elev)) {
   df = bbsWeather %>%
     filter(stateroute %in% dist_list_elev[[n]]$stateroute) %>%
@@ -231,7 +232,11 @@ for (n in 1: length(dist_list_elev)) {
     
     repeats = df1 %>% filter(stateroute %in% df2$stateroute)
     df = df %>% filter(stateroute %in% repeats$stateroute)
+    
   bbsRepeated_list[[n]] = df
+  routes_list = unique(df$stateroute)
+  bbsRoutes_fin[[n]] = data_frame(bbc_site = n, routes = routes_list) 
+  
 }
 
 ## filter bbs by site and year, match counts to early/late bbc years
@@ -269,9 +274,11 @@ for (n in 1: length(counts_list)) {
     
     df2 = bbsCount
     df2 = filter(df2, df2$stateroute == bird$stateroute[l], df2$aou == bird$aou[l])
+    
     tot_present = nrow(df2)
     bird$tot_survey[l] = tot_survey
     bird$presence[l] = (tot_present/tot_survey)
+    
   }
   bird = filter(bird, presence >= .33)
   counts_list_final[[n]]= filter(counts_list[[n]],
@@ -280,6 +287,9 @@ for (n in 1: length(counts_list)) {
 
 counts_df = bind_rows(counts_list)
 subset_bbsCounts = write.csv(counts_df, "subset_bbsCounts.csv")
+
+routes_df = bind_rows(bbsRoutes_fin)
+subset_bbsRoutes = write.csv(routes_df, "subset_bbsRoutes.csv")
 #list of bbs routes for each bbc site (counts list filt by dist list)
 # bbcid column in counts
 # subset to max and min bbc census years, add y1 y2 and bbc id columns into bbs

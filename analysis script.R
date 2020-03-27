@@ -9,6 +9,7 @@ library(ggplot2)
 # Checking temporal distribution of surveys
 # must run filtering scripts first and save objects for counts_list
 
+
 pdf(file = "bbs_hist.pdf")
 for(i in 1:length(counts_list)) {
   hist(counts_list[[i]]$year, breaks = 20, xlab = "year", 
@@ -84,6 +85,28 @@ for (n in 1: length(counts_list)) {
   counts_list[[n]] = filter(counts_list[[n]], aou %in% occurrence1$aou |aou %in% occurrence2$aou)
 }
 
-landcover_US = read.csv("fragmentation_indices_nlcd_simplified.csv")
-landcover_Can = read.csv("fragmentation_indices_canada.csv")
 
+subset_bbsCounts = read.csv("subset_bbsCounts.csv")
+subset_bbsRoutes = read.csv("subset_bbsRoutes.csv")
+landcover_US = read.csv("fragmentation_indices_nlcd_simplified.csv")
+newcode <- data.frame(code = seq(1,9), 
+                                   legend = c("Open water", "Urban", "Barren", "Forest", "Shrubland", 
+                                              "Agricultural", "Grasslands", "Wetlands", "Perennial ice, snow"))
+landcover_US_2001 = landcover_US %>%
+  select(file:prop.landscape) %>%
+  filter(year == "2001") %>%
+  filter(stateroute %in% subset_bbsRoutes)
+
+  summarise(max(prop.landscape))
+
+for(n in 1: nrow(subset_bbsRoutes)) {
+  df = filter(landcover_US_2001, stateroute == subset_bbsRoutes[,n])
+  max_land.prop = max(df$prop.landscape)
+  
+  for(l in 1: nrow(df)) {
+    df2 = filter(df, prop.landscape == max_land.prop)
+    subset_bbsRoutes[n]$landcover = df2[1]$class
+  }
+  
+  subset_bbsRoutes[,n]$landcover = 
+}

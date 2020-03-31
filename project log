@@ -56,3 +56,7 @@ determined rough est of 2 out of 3 palo locations, need to document reasoning an
 isolated list of bbs routes sampled for each bbc site and saved into csv to transfer to analysis script
 
 attempted construction of landcover code but no data to run as of yet
+
+3/30
+
+setting all palomarin sites to same long lat, elev ~ 58 m

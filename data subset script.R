@@ -11,7 +11,7 @@ library(raster)
 library(dplyr) 
 library(sf)
 library(lwgeom)
-
+library(rgdal)
 
 # Read in Breeding Bird Census (BBC) data
 
@@ -30,13 +30,16 @@ bbc_sites = read.csv("bbc data/bbc_sites.csv", header = TRUE, sep = ",")
 #bbc_sites_alt$latitude[173:178] = new_palo_station_B_lat
 #bbc_sites_alt$longitude[173:178] = new_palo_station_B_lon
 
+## Use direct bbs csv if rdataretriever works, otherwise use bbs-2017 csv
 
-bbsWeather = read.csv("bbs_weather.csv")
-bbsRoutes = read.csv("bbs_routes.csv")
+#bbsWeather = read.csv("bbs_weather.csv")
+#bbsRoutes = read.csv("bbs_routes.csv")
+bbsWeather = read.csv("bbs-2017/bbs_weather_20170712.csv")
+bbsRoutes = read.csv("bbs-2017/bbs_routes_20170712.csv")
 
 # Species name conversion - Code via Di Cecco
 # Match species common names to BBS species list
-{
+
 fix_spp <- list(new_species = c("Sage Sparrow" = "Sagebrush Sparrow", 
                                 "Western Scrub Jay" = "California Scrub Jay", 
                                 "Sharp-tailed Sparrow" = "Nelson's Sparrow", 
@@ -68,7 +71,7 @@ for(spp in bbc_counts$species) {
   }
 }
 
-}
+
 # Adding state identifiers based on BBS statenum 
 state_conver = read.csv("state_convers.csv", header = TRUE, sep = ",")
 bbc_states = c("Connecticut", "Connecticut", "New York", "California", "California", "Connecticut", "District of Columbia", "Connecticut", "South Carolina", "Connecticut", "Ontario","California", "New York", "Ontario", "South Carolina", "Tennessee", "Ontario", "California")
@@ -113,6 +116,13 @@ for (s in 1:nrow(bbcSitesFin)) {
 bbcSitesFin$longitude = -(bbcSitesFin$longitude)
 
 ####
+# alter Cali coordinates
+#for (n in 1:nrow(bbcSitesFin)) {
+#  if(bbcSitesFin$state[n] == "California" & bbcSitesFin$landcover[n] == "shrubland") {
+#    bbcSitesFin$latitude[n] = 37.92993
+#    bbcSitesFin$longitude[n] = -122.73526
+#  }
+#}
 # Read in elevation data
 
 elev <- raster("Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
@@ -125,7 +135,7 @@ latlong2 = spTransform(latlong, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_
 # plot(elev)
 # points(latlong2)
 
-bbcElev = extract(elev, latlong2)
+bbcElev = extract(elev, latlong2) 
 bbcSitesFin = mutate(bbcSitesFin, elev_m = bbcElev)
 
 # Create spatial data frame

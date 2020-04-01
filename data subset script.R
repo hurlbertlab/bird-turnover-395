@@ -32,10 +32,8 @@ bbc_sites = read.csv("bbc data/bbc_sites.csv", header = TRUE, sep = ",")
 
 ## Use direct bbs csv if rdataretriever works, otherwise use bbs-2017 csv
 
-#bbsWeather = read.csv("bbs_weather.csv")
-#bbsRoutes = read.csv("bbs_routes.csv")
-bbsWeather = read.csv("bbs-2017/bbs_weather_20170712.csv")
-bbsRoutes = read.csv("bbs-2017/bbs_routes_20170712.csv")
+bbsWeather = read.csv("bbs_weather.csv")
+bbsRoutes = read.csv("bbs_routes.csv")
 
 # Species name conversion - Code via Di Cecco
 # Match species common names to BBS species list
@@ -72,7 +70,7 @@ for(spp in bbc_counts$species) {
 }
 
 
-# Adding state identifiers based on BBS statenum 
+# Adding state identifiers based on statenum 
 state_conver = read.csv("state_convers.csv", header = TRUE, sep = ",")
 bbc_states = c("Connecticut", "Connecticut", "New York", "California", "California", "Connecticut", "District of Columbia", "Connecticut", "South Carolina", "Connecticut", "Ontario","California", "New York", "Ontario", "South Carolina", "Tennessee", "Ontario", "California")
 bbc_statenum = c("18", "18", "61", "14", "14", "18","22", "18", 
@@ -117,12 +115,12 @@ bbcSitesFin$longitude = -(bbcSitesFin$longitude)
 
 ####
 # alter Cali coordinates
-#for (n in 1:nrow(bbcSitesFin)) {
-#  if(bbcSitesFin$state[n] == "California" & bbcSitesFin$landcover[n] == "shrubland") {
-#    bbcSitesFin$latitude[n] = 37.92993
-#    bbcSitesFin$longitude[n] = -122.73526
-#  }
-#}
+for (n in 1:nrow(bbcSitesFin)) {
+  if(bbcSitesFin$state[n] == "California" & bbcSitesFin$landcover[n] == "shrubland") {
+    bbcSitesFin$latitude[n] = 37.92993
+    bbcSitesFin$longitude[n] = -122.73526
+  }
+}
 # Read in elevation data
 
 elev <- raster("Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
@@ -136,10 +134,10 @@ latlong2 = spTransform(latlong, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_
 # points(latlong2)
 
 bbcElev = extract(elev, latlong2) 
-bbcSitesFin = mutate(bbcSitesFin, elev_m = bbcElev)
+bbcSitesFin2 = mutate(bbcSitesFin, elev_m = bbcElev)
 
 # Create spatial data frame
-{
+
 sf_bbsRoutes = st_as_sf(bbsRoutes, 
                    coords = c("longitude", "latitude"),
                    crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
@@ -147,14 +145,14 @@ sf_bbsRoutes = mutate(sf_bbsRoutes, longitude = bbsRoutes$longitude, latitude = 
 sf_bbsRoutes$stateroute = (sf_bbsRoutes$statenum * 1000)+ sf_bbsRoutes$route
 
 
-sf_bbcSites = st_as_sf(bbcSitesFin,
+sf_bbcSites = st_as_sf(bbcSitesFin2,
                        coords = c("longitude", "latitude"),
                        crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 
 #######
 
 
-}
+
 # Area specific BBS Datasets
 {
 cali_bbs = st_as_sf(filter(sf_bbsRoutes, countrynum == "840" & 

@@ -93,5 +93,6 @@ bbcSites.3 = rename(bbcSites.3, bbc_site = X)
 
 bbsroute.landcover = left_join(bbsroute.landcover, bbsRoutes.3, by = "stateroute") %>% select(-X) 
   
-  #left_join(route.landcover, bbcSites.3, by = "bbc_site")
+bbsroute.landcover_fin = left_join(bbsroute.landcover, bbcSites.3, by = "bbc_site") %>%
+  select(c(year:class, prop.landscape:sitename, state:elev_m)) %>% group_by(bbc_site)
 

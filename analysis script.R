@@ -9,6 +9,12 @@ library(ggplot2)
 # Checking temporal distribution of surveys
 # must run filtering scripts first and save objects for counts_list
 
+bbcSites.3 = read.csv("bbcSitesFin2.csv")
+##bbcSitesFin.3 = read.csv(bbcSitesFin) maybe include direct
+bbsCounts.3 = read.csv("subset_bbsCounts.csv")
+bbsRoutes.3 = read.csv("subset_bbsRoutes.csv")
+
+bbc_counts = read.csv("bbc-data/bbc_counts.csv")
 
 pdf(file = "bbs_hist.pdf")
 for(i in 1:length(counts_list)) {
@@ -55,63 +61,38 @@ for( n in 1: length(dist_list)) {
     tm_dots()
 }
 
-
 print(us_map)
 
 dev.off()
+
+
+
 # next steps
-# species list filter, 
-# bbc- only keep breeders
-# bbs - remove transient (any observed only 1 time out of 5 year window)
+
 
 bbcSpeciesCount = bbc_counts %>%
   filter(siteID %in% bbcSitesFin) %>%
   filter(status == "breeder")
 
-# bbs - remove transient (any observed only 1 time out of 5 year window)
-# counts list, group by aou in early/late survey, filter by present >1 time 
+# assign bbs landcover
 
-for (n in 1: length(counts_list)) {
-  occurrence1 = counts_list[[n]] %>% 
-    filter(year >= bbcSitesFinal$y1[n] - 2 & year <= bbcSitesFinal$y1[n] +2) %>%
-    count(aou) 
-  occurrence1 = filter(occurrence1, n, n >1)
-  
-  occurrence2 = counts_list[[n]] %>% 
-    filter(year >= bbcSitesFinal$y2[n] - 2 & year <= bbcSitesFinal$y2[n] +2) %>%
-    count(aou)
-  occurrence2 = filter(occurrence2, n, n >1)
-  
-  counts_list[[n]] = filter(counts_list[[n]], aou %in% occurrence1$aou |aou %in% occurrence2$aou)
-}
-
-
-subset_bbsCounts = read.csv("subset_bbsCounts.csv")
-subset_bbsRoutes = read.csv("subset_bbsRoutes.csv")
 landcover_US = read.csv("fragmentation_indices_nlcd_simplified.csv")
-newcode <- data.frame(code = seq(1,9), 
+newcode <- data.frame(class = seq(1,9), 
                                    legend = c("Open water", "Urban", "Barren", "Forest", "Shrubland", 
                                               "Agricultural", "Grasslands", "Wetlands", "Perennial ice, snow"))
 landcover_US_2001 = landcover_US %>%
   select(file:prop.landscape) %>%
   filter(year == "2001") %>%
-  filter(stateroute %in% subset_bbsRoutes)
+  filter(stateroute %in% bbsRoutes.3$stateroute)
+# change route to stateroute once subset is run again
 
-for (n in 1: nrow(landcover_US_2001)) {
-  x = landcover_US_2001
-}
+landcover_US_2001.legend = left_join(landcover_US_2001, newcode, by = "class")
 
-  summarise(max(prop.landscape))
+bbsroute.landcover = landcover_US_2001.legend %>% group_by(stateroute) %>% filter(prop.landscape == max(prop.landscape))
 
-for(n in 1: nrow(subset_bbsRoutes)) {
-  df = filter(landcover_US_2001, stateroute == subset_bbsRoutes[,n])
-  max_land.prop = max(df$prop.landscape)
+bbcSites.3 = rename(bbcSites.3, bbc_site = X)
+
+route.landcover = left_join(route.landcover, bbsRoutes.3, by = "stateroute") %>% select(-X) 
   
-  for(l in 1: nrow(df)) {
-    df2 = filter(df, prop.landscape == max_land.prop)
-    x = df2[1]$class
-    subset_bbsRoutes[n]$landcover = newcode %>% filter(code == x) %>% newcode$legend[1]
-  }
-  
-  subset_bbsRoutes[,n]$landcover = 
-}
+  #left_join(route.landcover, bbcSites.3, by = "bbc_site")
+

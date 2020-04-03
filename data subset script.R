@@ -15,9 +15,9 @@ library(rgdal)
 
 # Read in Breeding Bird Census (BBC) data
 
-bbc_censuses = read.csv("bbc data/bbc_censuses.csv", header = TRUE, sep = ",")
-bbc_counts = read.csv("bbc data/bbc_counts.csv", header = TRUE, sep = ",")
-bbc_sites = read.csv("bbc data/bbc_sites.csv", header = TRUE, sep = ",")
+bbc_censuses = read.csv("bbc-data/bbc_censuses.csv", header = TRUE, sep = ",")
+bbc_counts = read.csv("bbc-data/bbc_counts.csv", header = TRUE, sep = ",")
+bbc_sites = read.csv("bbc-data/bbc_sites.csv", header = TRUE, sep = ",")
 
 #new_palo_station_A_lat = 
 #new_palo_station_A_lon = 
@@ -243,7 +243,7 @@ for (n in 1: length(dist_list_elev)) {
     
   bbsRepeated_list[[n]] = df
   routes_list = unique(df$stateroute)
-  bbsRoutes_fin[[n]] = data_frame(bbc_site = n, routes = routes_list) 
+  bbsRoutes_fin[[n]] = data_frame(bbc_site = n, stateroute = routes_list) 
   
 }
 
@@ -298,6 +298,8 @@ subset_bbsCounts = write.csv(counts_df, "subset_bbsCounts.csv")
 
 routes_df = bind_rows(bbsRoutes_fin)
 subset_bbsRoutes = write.csv(routes_df, "subset_bbsRoutes.csv")
+
+write.csv(bbcSitesFin2, "bbcSitesFin2.csv")
 #list of bbs routes for each bbc site (counts list filt by dist list)
 # bbcid column in counts
 # subset to max and min bbc census years, add y1 y2 and bbc id columns into bbs

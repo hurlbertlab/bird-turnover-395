@@ -99,11 +99,11 @@ bbcSitesFin = bbc_sites %>%
   dplyr::select(siteID:longitude) %>%
   filter(siteID %in% bbcCensusFin$siteID) %>%
   distinct() %>%
-  # removing siteid 177 because gap in bbs for y2 year
-  #filter(siteID != 177) %>%
   mutate(state = bbc_states) %>%
   mutate(statenum = bbc_statenum) %>%
-  mutate(landcover = bbcSiteFinNLCD)
+  mutate(landcover = bbcSiteFinNLCD) %>%
+  # removing siteid 247 because no comparable elevation
+  filter(siteID != 247) 
 
 for (s in 1:nrow(bbcSitesFin)) {
   bbcCensusTemp= filter(bbcCensusFin, siteID == bbcSitesFin$siteID[s])

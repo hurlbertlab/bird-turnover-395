@@ -10,7 +10,6 @@ library(ggplot2)
 # must run filtering scripts first and save objects for counts_list
 
 bbcSites.3 = read.csv("bbcSitesFin2.csv")
-##bbcSitesFin.3 = read.csv(bbcSitesFin) maybe include direct
 bbsCounts.3 = read.csv("subset_bbsCounts.csv")
 bbsRoutes.3 = read.csv("subset_bbsRoutes.csv")
 
@@ -92,7 +91,7 @@ bbsroute.landcover = landcover_US_2001.legend %>% group_by(stateroute) %>% filte
 
 bbcSites.3 = rename(bbcSites.3, bbc_site = X)
 
-route.landcover = left_join(route.landcover, bbsRoutes.3, by = "stateroute") %>% select(-X) 
+bbsroute.landcover = left_join(bbsroute.landcover, bbsRoutes.3, by = "stateroute") %>% select(-X) 
   
   #left_join(route.landcover, bbcSites.3, by = "bbc_site")
 

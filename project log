@@ -66,3 +66,8 @@ setting all palomarin sites to same long lat, elev ~ 58 m
 BBC Sites siteID 53, 54, and 348 were found to have coordinates that were not specific enough for elevation calculations. Due a lack of clarity of the exact location for each of the sites within the Point Reyes National Seashore, they were all assigned the coordinates of the Point Reyes Bird Observatory. This assumption should have relatively few consequences for comparison because the closest BBS routes do not change.
 
 tenn. filtered to 0 bbs after elev filter, need to look at expanding range
+
+4/3
+removed tenn.
+
+need to change bbc data folder to bbc-data

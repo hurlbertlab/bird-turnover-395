@@ -19,17 +19,6 @@ bbc_censuses = read.csv("bbc-data/bbc_censuses.csv", header = TRUE, sep = ",")
 bbc_counts = read.csv("bbc-data/bbc_counts.csv", header = TRUE, sep = ",")
 bbc_sites = read.csv("bbc-data/bbc_sites.csv", header = TRUE, sep = ",")
 
-#new_palo_station_A_lat = 
-#new_palo_station_A_lon = 
-#new_palo_station_B_lat = 
-#new_palo_station_B_lon = 
-
-#bbc_sites_alt = bbc_sites
-#bbc_sites_alt$latitude[162:172] = new_palo_station_A_lat
-#bbc_sites_alt$longitude[162:172] = new_palo_station_A_lon
-#bbc_sites_alt$latitude[173:178] = new_palo_station_B_lat
-#bbc_sites_alt$longitude[173:178] = new_palo_station_B_lon
-
 ## Use direct bbs csv if rdataretriever works, otherwise use bbs-2017 csv
 
 bbsWeather = read.csv("bbs_weather.csv")
@@ -302,4 +291,4 @@ subset_bbsRoutes = write.csv(routes_df, "subset_bbsRoutes.csv")
 write.csv(bbcSitesFin2, "bbcSitesFin2.csv")
 #list of bbs routes for each bbc site (counts list filt by dist list)
 # bbcid column in counts
-# subset to max and min bbc census years, add y1 y2 and bbc id columns into bbs
+

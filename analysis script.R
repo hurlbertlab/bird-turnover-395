@@ -64,15 +64,6 @@ print(us_map)
 
 dev.off()
 
-
-
-# next steps
-
-
-bbcSpeciesCount = bbc_counts %>%
-  filter(siteID %in% bbcSitesFin) %>%
-  filter(status == "breeder")
-
 # assign bbs landcover
 
 landcover_US = read.csv("fragmentation_indices_nlcd_simplified.csv")
@@ -83,16 +74,55 @@ landcover_US_2001 = landcover_US %>%
   select(file:prop.landscape) %>%
   filter(year == "2001") %>%
   filter(stateroute %in% bbsRoutes.3$stateroute)
-# change route to stateroute once subset is run again
 
 landcover_US_2001.legend = left_join(landcover_US_2001, newcode, by = "class")
 
-bbsroute.landcover = landcover_US_2001.legend %>% group_by(stateroute) %>% filter(prop.landscape == max(prop.landscape))
+landcover_Can = read.csv("fragmentation_indices_canada.csv")
+legend_can = read.csv("canada-landcover-legend.txt")
+
+landcover_Can_2001 = landcover_Can %>% 
+  select(file:prop.landscape) %>%
+  filter(year == "2000") %>%
+  filter(stateroute %in% bbsRoutes.3$stateroute) 
+
+landcover_Can_2001.legend = left_join(landcover_Can_2001, legend_can, by = "class") %>%
+  rename(legend = label) %>%
+  select(-definition)
+
+# combine US and Canada landcover, choose BBS roots to match 
+
+landcover = bind_rows(landcover_Can_2001.legend, landcover_US_2001.legend)
+
+bbsroute.landcover = landcover %>% group_by(stateroute) %>% filter(prop.landscape == max(prop.landscape))
 
 bbcSites.3 = rename(bbcSites.3, bbc_site = X)
 
-bbsroute.landcover = left_join(bbsroute.landcover, bbsRoutes.3, by = "stateroute") %>% select(-X) 
+bbsroute.landcover = left_join(bbsroute.landcover, bbsRoutes.3, by = "stateroute")# %>% select(-X) 
   
 bbsroute.landcover_fin = left_join(bbsroute.landcover, bbcSites.3, by = "bbc_site") %>%
   select(c(year:class, prop.landscape:sitename, state:elev_m)) %>% group_by(bbc_site)
 
+pair = data.frame(bbc_site = 1:17, bbc_siteID = bbcSites.3$siteID,
+                  stateroute = c("47019", "18009", "72028", "14016", "14016",
+                                 "18009", "46030", "18009", "80002", "18009",
+                                 "61064", "14047", "61121", "68001", "80002", "68220", "14016"))
+
+# compare abundance of individuals 
+
+bbcSpeciesCount = bbc_counts %>%
+  filter(siteID %in% bbcSites.3$siteID) %>%
+  filter(status == "breeder")
+
+pair.counts = data.frame(bbc = integer(), species1 = integer(), bbs = integer(), species2 = integer())
+for (n in 1:nrow(pair)) {
+  bbc = pair$bbc_siteID[n]
+  bbs = pair$stateroute[n]
+  
+  species1 = nrow(filter(bbcSpeciesCount, bbcSpeciesCount$siteID == bbc))
+  
+  species2 = nrow(filter(bbsCounts.3, bbsCounts.3$stateroute == bbs))
+  
+  df = data.frame(bbc, species1, bbs , species2)
+  pair.counts = rbind(pair.counts, df)
+
+}

@@ -71,3 +71,16 @@ tenn. filtered to 0 bbs after elev filter, need to look at expanding range
 removed tenn.
 
 need to change bbc data folder to bbc-data
+
+4/4
+pairs made
+
+need to isolate correct year 
+
+
+4/10
+
+individuals counted
+factor to numeric issue fixed, should individuals be counted with integers if they are listed as .5?
+
+need to subset random samples of bbs individuals

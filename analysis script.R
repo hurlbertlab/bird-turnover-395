@@ -13,7 +13,8 @@ bbcSites.3 = read.csv("bbcSitesFin2.csv")
 bbsCounts.3 = read.csv("subset_bbsCounts.csv")
 bbsRoutes.3 = read.csv("subset_bbsRoutes.csv")
 
-bbc_counts = read.csv("bbc-data/bbc_counts.csv")
+bbc_counts = read.csv("bbc-data/bbc_counts.csv", na.strings = c("+", "LU"), stringsAsFactors = FALSE)
+
 
 pdf(file = "bbs_hist.pdf")
 for(i in 1:length(counts_list)) {
@@ -112,17 +113,30 @@ pair = data.frame(bbc_site = 1:17, bbc_siteID = bbcSites.3$siteID,
 bbcSpeciesCount = bbc_counts %>%
   filter(siteID %in% bbcSites.3$siteID) %>%
   filter(status == "breeder")
+bbcSpeciesCount$count[is.na(bbcSpeciesCount$count)] = 0
 
-pair.counts = data.frame(bbc = integer(), species1 = integer(), bbs = integer(), species2 = integer())
+replace.counts = as.numeric(bbcSpeciesCount$count)
+bbcSpeciesCount.num = bbcSpeciesCount %>% mutate(count.int = replace.counts)
+
+
+pair.counts = data.frame(bbc = integer(), species1 = integer(), individ1 = numeric(), bbs = integer(), species2 = integer(), individ2 = numeric())
 for (n in 1:nrow(pair)) {
   bbc = pair$bbc_siteID[n]
   bbs = pair$stateroute[n]
   
-  species1 = nrow(filter(bbcSpeciesCount, bbcSpeciesCount$siteID == bbc))
+  df1 = filter(bbcSpeciesCount.num, bbcSpeciesCount.num$siteID == bbc)
+  df2 = filter(bbsCounts.3, bbsCounts.3$stateroute == bbs)
+  
+  species1 = nrow(df1)
+  individ1 = sum(df1$count.int)
   
   species2 = nrow(filter(bbsCounts.3, bbsCounts.3$stateroute == bbs))
+  individ2 = sum(df2$speciestotal)
   
-  df = data.frame(bbc, species1, bbs , species2)
+  df = data.frame(bbc, species1, individ1, bbs , species2, individ2)
   pair.counts = rbind(pair.counts, df)
 
 }
+
+# for loop calculating # of species for subsets of bbs with same number of individuals as bbc
+#subsets

@@ -225,3 +225,6 @@ J.scatter
 J.linmod = lm(J ~ bbc.J, data = output)
 
 dev.off()
+
+write.csv(output, file = "jaccard_calc_table.csv")
+write.csv(pair.counts, file = "pair_counts.csv")

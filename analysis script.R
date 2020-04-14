@@ -13,7 +13,12 @@ bbcSites.3 = read.csv("bbcSitesFin2.csv")
 bbsCounts.3 = read.csv("subset_bbsCounts.csv")
 bbsRoutes.3 = read.csv("subset_bbsRoutes.csv")
 
-bbc_counts = read.csv("bbc-data/bbc_counts.csv", na.strings = c("+", "LU"), stringsAsFactors = FALSE)
+bbc_counts = read.csv("bbc-data/bbc_counts.csv", stringsAsFactors = FALSE) 
+for(n in 1: length(bbc_counts$count)) {
+  if(bbc_counts$count[n] == "+") {bbc_counts$count[n] = .25}
+  if(bbc_counts$count[n] == "LU") {bbc_counts$count[n] = 1.0}
+}
+#, na.strings = c("+", "LU"), stringsAsFactors = FALSE)
 
 
 pdf(file = "bbs_hist.pdf")
@@ -103,7 +108,7 @@ bbsroute.landcover = left_join(bbsroute.landcover, bbsRoutes.3, by = "stateroute
 bbsroute.landcover_fin = left_join(bbsroute.landcover, bbcSites.3, by = "bbc_site") %>%
   select(c(year:class, prop.landscape:sitename, state:elev_m)) %>% group_by(bbc_site)
 
-pair = data.frame(bbc_site = 1:17, bbc_siteID = bbcSites.3$siteID,
+pair = data.frame(bbc_site = 1:17, bbc_siteID = bbcSites.3$siteID, y1 = bbcSites.3$y1, y2 = bbcSites.3$y2,
                   stateroute = c("47019", "18009", "72028", "14016", "14016",
                                  "18009", "46030", "18009", "80002", "18009",
                                  "61064", "14047", "61121", "68001", "80002", "68220", "14016"))
@@ -112,31 +117,98 @@ pair = data.frame(bbc_site = 1:17, bbc_siteID = bbcSites.3$siteID,
 
 bbcSpeciesCount = bbc_counts %>%
   filter(siteID %in% bbcSites.3$siteID) %>%
-  filter(status == "breeder")
+  filter(status == "breeder") 
+
 bbcSpeciesCount$count[is.na(bbcSpeciesCount$count)] = 0
+bbcSpeciesCount$count = as.numeric(bbcSpeciesCount$count)
+bbcSpeciesCount$count = ceiling(bbcSpeciesCount$count)
 
-replace.counts = as.numeric(bbcSpeciesCount$count)
-bbcSpeciesCount.num = bbcSpeciesCount %>% mutate(count.int = replace.counts)
-
-
-pair.counts = data.frame(bbc = integer(), species1 = integer(), individ1 = numeric(), bbs = integer(), species2 = integer(), individ2 = numeric())
+pair.counts = data.frame(bbc = integer(), species1.y1 = integer(), individ1.y1 = integer(), species1.y2 = integer(), individ1.y2 = integer(),
+                         bbs = integer(), bbs.y1 = integer(), species2.y1 = integer(), individ2.y1 = numeric(),
+                         bbs.y2 = integer(), species2.y2 = integer(), individ2.y2 = integer())
 for (n in 1:nrow(pair)) {
   bbc = pair$bbc_siteID[n]
   bbs = pair$stateroute[n]
+  y1 = pair$y1[n]
+  y2 = pair$y2[n]
   
-  df1 = filter(bbcSpeciesCount.num, bbcSpeciesCount.num$siteID == bbc)
-  df2 = filter(bbsCounts.3, bbsCounts.3$stateroute == bbs)
   
-  species1 = nrow(df1)
-  individ1 = sum(df1$count.int)
+  df1.y1 = filter(bbcSpeciesCount, bbcSpeciesCount$siteID == bbc,
+               bbcSpeciesCount$year == y1) 
+  df1.y2 = filter(bbcSpeciesCount, bbcSpeciesCount$siteID == bbc,
+                  bbcSpeciesCount$year == y2)
   
-  species2 = nrow(filter(bbsCounts.3, bbsCounts.3$stateroute == bbs))
-  individ2 = sum(df2$speciestotal)
+  df2 = bbsCounts.3 %>% filter(bbsCounts.3$stateroute == bbs)
   
-  df = data.frame(bbc, species1, individ1, bbs , species2, individ2)
+  df2.y1 = filter(df2, df2$year == y1 - min(abs(unique(df2$year) - y1)))
+  bbs.y1 =  y1 - min(abs(unique(df2$year) - y1))
+  if(sum(df2.y1$speciestotal) == 0) {
+    df2.y1 = filter(df2, df2$year == y1 + min(abs(unique(df2$year) - y1)))
+    bbs.y1 = y1 + min(abs(unique(df2$year) - y1))
+  }
+  df2.y2 = filter(df2, df2$year == y2 - min(abs(unique(df2$year) - y2)))
+  bbs.y2 = y2 - min(abs(unique(df2$year) - y2))
+  if(sum(df2.y2$speciestotal) == 0) {
+    df2.y2 = filter(df2, df2$year ==  y2 + min(abs(unique(df2$year) - y2)))
+    bbs.y2 = y2 + min(abs(unique(df2$year) - y2))
+  }
+  
+  species1.y1 = nrow(df1.y1)
+  individ1.y1 = sum(df1.y1$count)
+  species1.y2 = nrow(df1.y2)
+  individ1.y2 = sum(df1.y2$count)
+  
+  species2.y1 = nrow(df2.y1)
+  individ2.y1 = sum(df2.y1$speciestotal)
+  species2.y2 = nrow(df2.y2)
+  individ2.y2 = sum(df2.y2$speciestotal)
+  
+  df = data.frame(bbc, species1.y1, individ1.y1, species1.y2, individ1.y2,
+                  bbs, bbs.y1, species2.y1, individ2.y1, bbs.y2, species2.y2, individ2.y2)
   pair.counts = rbind(pair.counts, df)
-
 }
 
 # for loop calculating # of species for subsets of bbs with same number of individuals as bbc
 #subsets
+
+# Jaccard similarity coefficient
+# J = # species shared / total # unique species
+output = data_frame(bbc = integer(), stateroute = integer(), mean.J = double())
+
+for (s in 1:nrow(pair.counts)) {
+  bbs.y1.all = bbsCounts.3 %>% filter(year == pair.counts$bbs.y1[s], stateroute == pair.counts$bbs[s])
+  bbs.y2.all = bbsCounts.3 %>% filter(year == pair.counts$bbs.y2[s], stateroute == pair.counts$bbs[s])
+  
+  J.vals = vector()
+  for (i in 1:100) {
+    y1.subset = sample_n(bbs.y1.all, size = pair.counts$individ1.y1[s], replace = TRUE, weight = bbs.y1.all$speciestotal)
+    y2.subset = sample_n(bbs.y2.all, size = pair.counts$individ1.y2[s], replace = TRUE, weight = bbs.y2.all$speciestotal)
+    
+    tmp.y1.species = y1.subset$aou
+    tmp.y2.species = y2.subset$aou
+    
+    sharedspp = sum(tmp.y1.species %in% tmp.y2.species)
+    if (length(tmp.y1.species) > length(tmp.y2.species)) {
+      sharedspp = sum(tmp.y2.species %in% tmp.y1.species)}
+    totalspp = length(tmp.y1.species) + length(tmp.y2.species) - sharedspp
+    
+    J.vals[i] = sharedspp/totalspp
+  }
+  tmpOut = data.frame(bbc = pair.counts$bbc[s], stateroute = pair.counts$bbs[s], J = mean(J.vals))
+  output = rbind(output, tmpOut)
+}
+
+bbc.J = vector()
+for (l in 1: nrow(pair.counts)) {
+  tmp.y1.species = filter(bbcSpeciesCount, siteID == pair.counts$bbc[l], year == bbcSites.3$y1[l])$species
+  tmp.y2.species = filter(bbcSpeciesCount, siteID == pair.counts$bbc[l], year == bbcSites.3$y2[l])$species
+  
+  sharedspp = sum(tmp.y1.species %in% tmp.y2.species)
+  if (length(tmp.y1.species) > length(tmp.y2.species)) {
+    sharedspp = sum(tmp.y2.species %in% tmp.y1.species)}
+  totalspp = length(tmp.y1.species) + length(tmp.y2.species) - sharedspp
+  
+  bbc.J[l] = sharedspp/totalspp
+}
+output$bbc.J = bbc.J 
+

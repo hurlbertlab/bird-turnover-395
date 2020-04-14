@@ -212,3 +212,16 @@ for (l in 1: nrow(pair.counts)) {
 }
 output$bbc.J = bbc.J 
 
+
+# rough draft figures
+pdf(file = " rough_draft_figs.pdf")
+par(mfrow=c(1, 2))
+boxplot(output$J, main = "BBS Turnover")
+boxplot(output$bbc.J, main = "BBC Turnover")
+
+J.scatter = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() + geom_abline()
+J.scatter
+
+J.linmod = lm(J ~ bbc.J, data = output)
+
+dev.off()

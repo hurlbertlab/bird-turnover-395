@@ -173,7 +173,7 @@ for (n in 1:nrow(pair)) {
 
 # Jaccard similarity coefficient
 # J = # species shared / total # unique species
-output = data_frame(bbc = integer(), stateroute = integer(), mean.J = double())
+output = data_frame(siteID = integer(), stateroute = integer(), mean.J = double())
 
 for (s in 1:nrow(pair.counts)) {
   bbs.y1.all = bbsCounts.3 %>% filter(year == pair.counts$bbs.y1[s], stateroute == pair.counts$bbs[s])
@@ -194,7 +194,7 @@ for (s in 1:nrow(pair.counts)) {
     
     J.vals[i] = sharedspp/totalspp
   }
-  tmpOut = data.frame(bbc = pair.counts$bbc[s], stateroute = pair.counts$bbs[s], J = mean(J.vals))
+  tmpOut = data.frame(siteID = pair.counts$bbc[s], stateroute = pair.counts$bbs[s], J = mean(J.vals))
   output = rbind(output, tmpOut)
 }
 
@@ -212,17 +212,29 @@ for (l in 1: nrow(pair.counts)) {
 }
 output$bbc.J = bbc.J 
 
+output = left_join(output, bbcSites.3, by = "siteID")
 
+df.m = data.frame(Type = rep(c("bbs", "bbc"), each = 17), J = c(output$J, output$bbc.J))
 # rough draft figures
 pdf(file = " rough_draft_figs.pdf")
-par(mfrow=c(1, 2))
-boxplot(output$J, main = "BBS Turnover")
-boxplot(output$bbc.J, main = "BBC Turnover")
 
-J.scatter = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() + geom_abline()
-J.scatter
+ggplot(data = df.m, aes(x = Type, y = J)) + geom_boxplot(aes(fill = Type)) 
 
 J.linmod = lm(J ~ bbc.J, data = output)
+J.scatter = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() + geom_line(aes(y = predict(J.linmod)))
+J.scatter
+
+J.smooth = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() + geom_smooth() 
+J.smooth
+
+J.comp = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() +
+  geom_smooth(method = "lm") + geom_abline(a = 0, b=1, col = "red") 
+J.comp 
+
+J.factors = ggplot(data = output, aes(x = bbc.J, y = J, color = landcover, shape = state)) + geom_point() 
+J.factors
+
+
 
 dev.off()
 

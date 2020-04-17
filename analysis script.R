@@ -6,6 +6,8 @@
 library(dplyr)
 library(sf)
 library(ggplot2)
+library(spData)
+library(tmap)
 # Checking temporal distribution of surveys
 # must run filtering scripts first and save objects for counts_list
 
@@ -13,62 +15,12 @@ bbcSites.3 = read.csv("bbcSitesFin2.csv")
 bbsCounts.3 = read.csv("subset_bbsCounts.csv")
 bbsRoutes.3 = read.csv("subset_bbsRoutes.csv")
 
+
 bbc_counts = read.csv("bbc-data/bbc_counts.csv", stringsAsFactors = FALSE) 
 for(n in 1: length(bbc_counts$count)) {
   if(bbc_counts$count[n] == "+") {bbc_counts$count[n] = .25}
   if(bbc_counts$count[n] == "LU") {bbc_counts$count[n] = 1.0}
 }
-#, na.strings = c("+", "LU"), stringsAsFactors = FALSE)
-
-
-pdf(file = "bbs_hist.pdf")
-for(i in 1:length(counts_list)) {
-  hist(counts_list[[i]]$year, breaks = 20, xlab = "year", 
-       main = paste("Site ", i))
-}
-dev.off()
-#####
-
-
-
-#####
-pdf(file = "bbs_hist_byroute.pdf")
-for(i in 1:length(counts_list)) {
-  
-  par(mfrow = c(1,2))
-  
-  occurrence1 = bbsWeather %>% 
-    filter(stateroute %in% counts_list[[i]]$stateroute, year >= bbcSitesFin$y1[i] - 2 & year <= bbcSitesFin$y1[i] +2)  
-  
-  occurrence2 = bbsWeather %>% 
-    filter(stateroute %in% counts_list[[i]]$stateroute, year >= bbcSitesFin$y2[i] - 2 & year <= bbcSitesFin$y2[i] +2) 
-  
-  barplot(table(occurrence1$stateroute), xlab = "Y1 state route surveys", main = paste("Site ", i, ":", bbcSitesFin$State[i]))
-  barplot(table(occurrence2$stateroute), xlab = "Y2 state route surveys")
-  
-}
-dev.off()
-par(mfrow = c(1, 1))
-
-pdf(file = "map routes and surveys.pdf")
-us_states2163 = st_transform(us_states, 2163)
-us_map = tm_shape(us_states2163) + 
-  tm_polygons() + 
-  tm_layout(frame = FALSE) 
-
-us_map = us_map + 
-  tm_shape(sf_bbcSites)+
-  tm_dots(col = "red", size = .07, shape = 8)
-  
-for( n in 1: length(dist_list)) {
-  us_map = us_map + 
-    tm_shape(dist_list[[n]]) +
-    tm_dots()
-}
-
-print(us_map)
-
-dev.off()
 
 # assign bbs landcover
 
@@ -173,7 +125,7 @@ for (n in 1:nrow(pair)) {
 
 # Jaccard similarity coefficient
 # J = # species shared / total # unique species
-output = data_frame(siteID = integer(), stateroute = integer(), mean.J = double())
+output = data_frame(siteID = integer(), stateroute = factor(), mean.J = double())
 
 for (s in 1:nrow(pair.counts)) {
   bbs.y1.all = bbsCounts.3 %>% filter(year == pair.counts$bbs.y1[s], stateroute == pair.counts$bbs[s])
@@ -212,11 +164,23 @@ for (l in 1: nrow(pair.counts)) {
 }
 output$bbc.J = bbc.J 
 
-output = left_join(output, bbcSites.3, by = "siteID")
+output = left_join(output, bbcSites.3, by = "siteID") 
+
+routes_simple = data_frame(stateroute = bbsRoutes.3$stateroute, bbs.lat = bbsRoutes.3$latitude, bbs.long = bbsRoutes.3$longitude) %>%
+  filter(stateroute %in% output$stateroute) %>% unique()
+routes_simple$stateroute = factor(routes_simple$stateroute)
+
+output = left_join(output, routes_simple, by = "stateroute")
 
 df.m = data.frame(Type = rep(c("bbs", "bbc"), each = 17), J = c(output$J, output$bbc.J))
+
+#Analysis of results
+
+t.test(output$J, output$bbc.J, paired = TRUE)
+
 # rough draft figures
-pdf(file = " rough_draft_figs.pdf")
+
+#pdf(file = " rough_draft_figs.pdf")
 
 ggplot(data = df.m, aes(x = Type, y = J)) + geom_boxplot(aes(fill = Type)) 
 
@@ -228,15 +192,34 @@ J.smooth = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() + geom_sm
 J.smooth
 
 J.comp = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() +
-  geom_smooth(method = "lm") + geom_abline(a = 0, b=1, col = "red") 
+  geom_smooth(method = "lm") + geom_abline(a=0, b=1, col = "red") 
 J.comp 
 
 J.factors = ggplot(data = output, aes(x = bbc.J, y = J, color = landcover, shape = state)) + geom_point() 
 J.factors
 
 
+#dev.off()
+sf_bbcSites = st_as_sf(bbcSites.3,
+                       coords = c("longitude", "latitude"),
+                       crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+sf_bbsSites = st_as_sf(output,
+                       coords = c("bbs.long", "bbs.lat"),
+                       crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 
-dev.off()
+us_states2163 = st_transform(us_states, 2163)
+us_map = tm_shape(us_states2163) + 
+  tm_polygons() + 
+  tm_layout(frame = FALSE) 
+
+us_map = us_map + 
+  tm_shape(sf_bbcSites)+
+  tm_dots(size = .07, shape = 8)
+
+us_map = us_map + 
+    tm_shape(sf_bbsSites) +
+    tm_dots(size = .1, col = "landcover")
+print(us_map)
 
 write.csv(output, file = "jaccard_calc_table.csv")
 write.csv(pair.counts, file = "pair_counts.csv")

@@ -12,7 +12,9 @@ library(dplyr)
 library(sf)
 library(lwgeom)
 library(rgdal)
-
+library(ggplot2)
+library(spData)
+library(tmap)
 # Read in Breeding Bird Census (BBC) data
 
 bbc_censuses = read.csv("bbc-data/bbc_censuses.csv", header = TRUE, sep = ",")
@@ -22,7 +24,7 @@ bbc_sites = read.csv("bbc-data/bbc_sites.csv", header = TRUE, sep = ",")
 ## Use direct bbs csv if rdataretriever works, otherwise use bbs-2017 csv
 
 bbsWeather = read.csv("bbs_weather.csv")
-bbsRoutes = read.csv("bbs_routes.csv")
+bbsRoutes = read.csv("bbs_routes.csv") %>% mutate(stateroute = (statenum * 1000) + route)
 
 # Species name conversion - Code via Di Cecco
 # Match species common names to BBS species list
@@ -286,9 +288,58 @@ counts_df = bind_rows(counts_list)
 subset_bbsCounts = write.csv(counts_df, "subset_bbsCounts.csv")
 
 routes_df = bind_rows(bbsRoutes_fin)
+routes_df = left_join(routes_df, bbsRoutes, by = "stateroute")
 subset_bbsRoutes = write.csv(routes_df, "subset_bbsRoutes.csv")
 
 write.csv(bbcSitesFin2, "bbcSitesFin2.csv")
 #list of bbs routes for each bbc site (counts list filt by dist list)
 # bbcid column in counts
 
+#pdf(file = "bbs_hist.pdf")
+for(i in 1:length(counts_list)) {
+  hist(counts_list[[i]]$year, breaks = 20, xlab = "year", 
+       main = paste("Site ", i))
+}
+#dev.off()
+#####
+
+
+
+#####
+#pdf(file = "bbs_hist_byroute.pdf")
+for(i in 1:length(counts_list)) {
+  
+  par(mfrow = c(1,2))
+  
+  occurrence1 = bbsWeather %>% 
+    filter(stateroute %in% counts_list[[i]]$stateroute, year >= bbcSitesFin$y1[i] - 2 & year <= bbcSitesFin$y1[i] +2)  
+  
+  occurrence2 = bbsWeather %>% 
+    filter(stateroute %in% counts_list[[i]]$stateroute, year >= bbcSitesFin$y2[i] - 2 & year <= bbcSitesFin$y2[i] +2) 
+  
+  barplot(table(occurrence1$stateroute), xlab = "Y1 state route surveys", main = paste("Site ", i, ":", bbcSitesFin$State[i]))
+  barplot(table(occurrence2$stateroute), xlab = "Y2 state route surveys")
+  
+}
+#dev.off()
+par(mfrow = c(1, 1))
+
+#pdf(file = "map routes and surveys.pdf")
+us_states2163 = st_transform(us_states, 2163)
+us_map = tm_shape(us_states2163) + 
+  tm_polygons() + 
+  tm_layout(frame = FALSE) 
+
+us_map = us_map + 
+  tm_shape(sf_bbcSites)+
+  tm_dots(col = "red", size = .07, shape = 8)
+
+for( n in 1: length(dist_list)) {
+  us_map = us_map + 
+    tm_shape(dist_list[[n]]) +
+    tm_dots()
+}
+
+print(us_map)
+
+#dev.off()

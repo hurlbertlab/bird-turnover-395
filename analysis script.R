@@ -180,7 +180,7 @@ t.test(output$J, output$bbc.J, paired = TRUE)
 
 # rough draft figures
 
-#pdf(file = " rough_draft_figs.pdf")
+pdf(file = " rough_draft_figs.pdf")
 
 ggplot(data = df.m, aes(x = Type, y = J)) + geom_boxplot(aes(fill = Type)) 
 
@@ -200,7 +200,7 @@ J.factors = ggplot(data = output, aes(x = bbc.J, y = J, color = landcover, shape
 J.factors
 
 
-#dev.off()
+dev.off()
 
 pdf(file = "paired_site_map.pdf")
 sf_bbcSites = st_as_sf(bbcSites.3,

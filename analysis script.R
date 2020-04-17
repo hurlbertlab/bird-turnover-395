@@ -185,21 +185,24 @@ t.test(output$J, output$bbc.J, paired = TRUE)
 ggplot(data = df.m, aes(x = Type, y = J)) + geom_boxplot(aes(fill = Type)) 
 
 J.linmod = lm(J ~ bbc.J, data = output)
-J.scatter = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() + geom_line(aes(y = predict(J.linmod)))
+J.scatter = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() +
+  geom_line(aes(y = predict(J.linmod))) + labs(title = "J on BBC sites vs BBS")
 J.scatter
 
 J.smooth = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() + geom_smooth() 
 J.smooth
 
 J.comp = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() +
-  geom_smooth(method = "lm") + geom_abline(a=0, b=1, col = "red") 
+  geom_smooth(method = "lm") + geom_abline(a=0, b=1, col = "red") + labs(title = "Linear regression compared to null hypothesis")
 J.comp 
 
-J.factors = ggplot(data = output, aes(x = bbc.J, y = J, color = landcover, shape = state)) + geom_point() 
+J.factors = ggplot(data = output, aes(x = bbc.J, y = J, color = landcover, shape = state)) + geom_point() + labs(title = "J by State and Landcover") 
 J.factors
 
 
 #dev.off()
+
+pdf(file = "paired_site_map.pdf")
 sf_bbcSites = st_as_sf(bbcSites.3,
                        coords = c("longitude", "latitude"),
                        crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
@@ -220,6 +223,8 @@ us_map = us_map +
     tm_shape(sf_bbsSites) +
     tm_dots(size = .1, col = "landcover")
 print(us_map)
+
+dev.off()
 
 write.csv(output, file = "jaccard_calc_table.csv")
 write.csv(pair.counts, file = "pair_counts.csv")

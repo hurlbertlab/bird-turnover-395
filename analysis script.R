@@ -7,7 +7,10 @@ library(dplyr)
 library(sf)
 library(ggplot2)
 library(spData)
+library(rnaturalearth)
+library(rnaturalearthdata)
 library(tmap)
+library(raster)
 # Checking temporal distribution of surveys
 # must run filtering scripts first and save objects for counts_list
 
@@ -182,21 +185,27 @@ t.test(output$J, output$bbc.J, paired = TRUE)
 
 pdf(file = " rough_draft_figs.pdf")
 
-ggplot(data = df.m, aes(x = Type, y = J)) + geom_boxplot(aes(fill = Type)) 
+ggplot(data = df.m, aes(x = Type, y = J)) +
+  geom_boxplot(aes(fill = Type)) +
+  labs(x = "Site type", y = "Jaccard Similarity", title = "Mean similarity at BBC and BBS Sites")
 
 J.linmod = lm(J ~ bbc.J, data = output)
-J.scatter = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() +
-  geom_line(aes(y = predict(J.linmod))) + labs(title = "J on BBC sites vs BBS")
-J.scatter
 
-J.smooth = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() + geom_smooth() 
+
+J.smooth = ggplot(data = output, aes(x = bbc.J, y = J)) +
+  geom_point() + geom_smooth() + labs(x = "BBC J", y = "BBS J", title = "Jaccard Similarity at BBC and BBS sites")
 J.smooth
 
 J.comp = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() +
-  geom_smooth(method = "lm") + geom_abline(a=0, b=1, col = "red") + labs(title = "Linear regression compared to null hypothesis")
+  geom_smooth(method = "lm") +
+  geom_abline(a=0, b=1, col = "red") +
+  labs(title = "Linear regression compared to null hypothesis")
 J.comp 
 
-J.factors = ggplot(data = output, aes(x = bbc.J, y = J, color = landcover, shape = state)) + geom_point() + labs(title = "J by State and Landcover") 
+J.factors = ggplot(data = output, aes(x = bbc.J, y = J, color = landcover, shape = state)) + 
+  geom_point() +
+  geom_abline(a=0, b=1, col = "red") +
+  labs(x = "BBC J", y = "BBS J", title = "Jaccard Similarity at BBC and BBS sites") 
 J.factors
 
 
@@ -210,18 +219,21 @@ sf_bbsSites = st_as_sf(output,
                        coords = c("bbs.long", "bbs.lat"),
                        crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 
-us_states2163 = st_transform(us_states, 2163)
+northam_cropped = st_crop(worldmap, xmin = -170, xmax = -50,
+                          ymin = 25, ymax = 53)
+
+us_states2163 = st_transform(northam_cropped, 2163)
 us_map = tm_shape(us_states2163) + 
   tm_polygons() + 
   tm_layout(frame = FALSE) 
 
 us_map = us_map + 
-  tm_shape(sf_bbcSites)+
-  tm_dots(size = .07, shape = 8)
-
-us_map = us_map + 
     tm_shape(sf_bbsSites) +
-    tm_dots(size = .1, col = "landcover")
+    tm_dots(size = .5, col = "landcover")
+us_map = us_map + 
+  tm_shape(sf_bbcSites)+
+  tm_dots(size = .1, shape = 8)
+
 print(us_map)
 
 dev.off()

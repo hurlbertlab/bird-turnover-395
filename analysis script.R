@@ -128,7 +128,7 @@ for (n in 1:nrow(pair)) {
 
 # Jaccard similarity coefficient
 # J = # species shared / total # unique species
-output = data_frame(siteID = integer(), stateroute = factor(), mean.J = double())
+output = data_frame(siteID = integer(), stateroute = factor(), mean.J = double(), J.sd = double())
 
 for (s in 1:nrow(pair.counts)) {
   bbs.y1.all = bbsCounts.3 %>% filter(year == pair.counts$bbs.y1[s], stateroute == pair.counts$bbs[s])
@@ -148,8 +148,9 @@ for (s in 1:nrow(pair.counts)) {
     totalspp = length(tmp.y1.species) + length(tmp.y2.species) - sharedspp
     
     J.vals[i] = sharedspp/totalspp
+    J.sd = sd(J.vals)
   }
-  tmpOut = data.frame(siteID = pair.counts$bbc[s], stateroute = pair.counts$bbs[s], J = mean(J.vals))
+  tmpOut = data.frame(siteID = pair.counts$bbc[s], stateroute = pair.counts$bbs[s], J = mean(J.vals), sd = J.sd)
   output = rbind(output, tmpOut)
 }
 
@@ -205,6 +206,7 @@ J.comp
 J.factors = ggplot(data = output, aes(x = bbc.J, y = J, color = landcover, shape = state)) + 
   geom_point() +
   geom_abline(a=0, b=1, col = "red") +
+  geom_errorbar(aes(ymin = J-sd, ymax = J+sd)) +
   labs(x = "BBC J", y = "BBS J", title = "Jaccard Similarity at BBC and BBS sites") 
 J.factors
 
@@ -232,7 +234,9 @@ us_map = us_map +
     tm_dots(size = .5, col = "landcover")
 us_map = us_map + 
   tm_shape(sf_bbcSites)+
-  tm_dots(size = .1, shape = 8)
+  tm_dots(size = .1, shape = 8) 
+us_map = us_map + 
+  tm_add_legend(type = "symbol", labels = c("BBC", "BBS"), shape = c(8,1))
 
 print(us_map)
 

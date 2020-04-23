@@ -11,6 +11,7 @@ library(rnaturalearth)
 library(rnaturalearthdata)
 library(tmap)
 library(raster)
+library(rgeos)
 # Checking temporal distribution of surveys
 # must run filtering scripts first and save objects for counts_list
 
@@ -221,6 +222,7 @@ sf_bbsSites = st_as_sf(output,
                        coords = c("bbs.long", "bbs.lat"),
                        crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 
+worldmap = ne_countries(scale = 'medium', type = 'map_units', returnclass = 'sf')
 northam_cropped = st_crop(worldmap, xmin = -170, xmax = -50,
                           ymin = 25, ymax = 53)
 

@@ -255,7 +255,7 @@ us_map = tm_shape(us_states2163) +
 
 us_map = us_map + 
     tm_shape(sf_bbsSites) +
-    tm_dots(size = .5, col = "landcover")
+    tm_dots(size = .5, col = "landcover", title = "Land Cover")
 us_map = us_map + 
   tm_shape(sf_bbcSites)+
   tm_dots(size = .1, shape = 8) 

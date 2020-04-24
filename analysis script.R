@@ -1,7 +1,8 @@
-## ENEC 395: Climate and avian turnover script 3
-# Final products: histogram pdf, bbcSpeciesCount: table of bbc aou counts 
-# filtered by relevant sites and breeders, counts_list: list of tables of bbs data 
-# for each bbc site, removed transient
+######################################
+## ENEC 395: Avian community similarity: script 3
+# Ellie Kremer
+# 12/3/2019
+######################################
 
 library(dplyr)
 library(sf)
@@ -12,13 +13,13 @@ library(rnaturalearthdata)
 library(tmap)
 library(raster)
 library(rgeos)
-# Checking temporal distribution of surveys
-# must run filtering scripts first and save objects for counts_list
 
+# Read in filtered BBC data
 bbcSites.3 = read.csv("bbcSitesFin2.csv")
 bbsCounts.3 = read.csv("subset_bbsCounts.csv")
 bbsRoutes.3 = read.csv("subset_bbsRoutes.csv")
 
+# Read in raw BBC survey data
 
 bbc_counts = read.csv("bbc-data/bbc_counts.csv", stringsAsFactors = FALSE) 
 for(n in 1: length(bbc_counts$count)) {
@@ -26,12 +27,18 @@ for(n in 1: length(bbc_counts$count)) {
   if(bbc_counts$count[n] == "LU") {bbc_counts$count[n] = 1.0}
 }
 
-# assign bbs landcover
+## Assign BBS site landcover types
+
+# Step 1: Read in raster and match classes to given types from legend
 
 landcover_US = read.csv("fragmentation_indices_nlcd_simplified.csv")
+
 newcode <- data.frame(class = seq(1,9), 
                                    legend = c("Open water", "Urban", "Barren", "Forest", "Shrubland", 
                                               "Agricultural", "Grasslands", "Wetlands", "Perennial ice, snow"))
+
+# Step 2: Filter to landcover from selected years and combine US and Canada data
+
 landcover_US_2001 = landcover_US %>%
   select(file:prop.landscape) %>%
   filter(year == "2001") %>%
@@ -51,9 +58,9 @@ landcover_Can_2001.legend = left_join(landcover_Can_2001, legend_can, by = "clas
   rename(legend = label) %>%
   select(-definition)
 
-# combine US and Canada landcover, choose BBS roots to match 
-
 landcover = bind_rows(landcover_Can_2001.legend, landcover_US_2001.legend)
+
+# Step 3: Assign landcover to BBS sites based on landcover type covering greatest proportion
 
 bbsroute.landcover = landcover %>% group_by(stateroute) %>% filter(prop.landscape == max(prop.landscape))
 
@@ -69,7 +76,7 @@ pair = data.frame(bbc_site = 1:17, bbc_siteID = bbcSites.3$siteID, y1 = bbcSites
                                  "18009", "46030", "18009", "80002", "18009",
                                  "61064", "14047", "61121", "68001", "80002", "68220", "14016"))
 
-# compare abundance of individuals 
+# Compare abundance of individuals observed at BBC and BBS sites
 
 bbcSpeciesCount = bbc_counts %>%
   filter(siteID %in% bbcSites.3$siteID) %>%
@@ -124,11 +131,12 @@ for (n in 1:nrow(pair)) {
   pair.counts = rbind(pair.counts, df)
 }
 
-# for loop calculating # of species for subsets of bbs with same number of individuals as bbc
-#subsets
+# For loop calculating # of individuals present in BBC then generating subsets
+# of BBS surveys with same # of individuals
 
-# Jaccard similarity coefficient
+# Calculating Jaccard similarity coefficient for each subset and saving to calculate mean value for each BBS site
 # J = # species shared / total # unique species
+
 output = data_frame(siteID = integer(), stateroute = factor(), mean.J = double(), J.sd = double())
 
 for (s in 1:nrow(pair.counts)) {
@@ -155,6 +163,8 @@ for (s in 1:nrow(pair.counts)) {
   output = rbind(output, tmpOut)
 }
 
+# Calculating Jaccard similarity value for each BBC site
+
 bbc.J = vector()
 for (l in 1: nrow(pair.counts)) {
   tmp.y1.species = filter(bbcSpeciesCount, siteID == pair.counts$bbc[l], year == bbcSites.3$y1[l])$species
@@ -169,6 +179,8 @@ for (l in 1: nrow(pair.counts)) {
 }
 output$bbc.J = bbc.J 
 
+# Combining and simplifying output results table
+
 output = left_join(output, bbcSites.3, by = "siteID") 
 
 routes_simple = data_frame(stateroute = bbsRoutes.3$stateroute, bbs.lat = bbsRoutes.3$latitude, bbs.long = bbsRoutes.3$longitude) %>%
@@ -176,33 +188,41 @@ routes_simple = data_frame(stateroute = bbsRoutes.3$stateroute, bbs.lat = bbsRou
 routes_simple$stateroute = factor(routes_simple$stateroute)
 
 output = left_join(output, routes_simple, by = "stateroute")
+simple_output = data_frame(BBC_site = output$sitename, BBC_ID = output$siteID,
+                           BBS_Stateroute = output$stateroute, BBC_J = output$bbc.J,
+                           BBS_J = output$J, Year_1 = output$y1, Year_2 = output$y2)
 
 df.m = data.frame(Type = rep(c("bbs", "bbc"), each = 17), J = c(output$J, output$bbc.J))
 
-#Analysis of results
+## Analysis of results
+
+# paired t-test
 
 t.test(output$J, output$bbc.J, paired = TRUE)
 
 # rough draft figures
 
-pdf(file = " rough_draft_figs.pdf")
+pdf(file = "similarity_figures.pdf")
+
+# Boxplot comparing mean values of Jaccard similarity
 
 ggplot(data = df.m, aes(x = Type, y = J)) +
   geom_boxplot(aes(fill = Type)) +
   labs(x = "Site type", y = "Jaccard Similarity", title = "Mean similarity at BBC and BBS Sites")
 
+# Linear regression modeling the relationship between J similarity at BBC and BBS sites
+
 J.linmod = lm(J ~ bbc.J, data = output)
 
-
-J.smooth = ggplot(data = output, aes(x = bbc.J, y = J)) +
-  geom_point() + geom_smooth() + labs(x = "BBC J", y = "BBS J", title = "Jaccard Similarity at BBC and BBS sites")
-J.smooth
+# Plot comparing linear regression model to 1:1 ratio
 
 J.comp = ggplot(data = output, aes(x = bbc.J, y = J)) + geom_point() +
   geom_smooth(method = "lm") +
   geom_abline(a=0, b=1, col = "red") +
   labs(title = "Linear regression compared to null hypothesis")
 J.comp 
+
+# Scatter plot comparing J for BBS and BBC with landcover and state factors included 
 
 J.factors = ggplot(data = output, aes(x = bbc.J, y = J, color = landcover, shape = state)) + 
   geom_point() +
@@ -213,6 +233,8 @@ J.factors
 
 
 dev.off()
+
+# Map of BBC sites with final BBS site pair including landcover factor
 
 pdf(file = "paired_site_map.pdf")
 sf_bbcSites = st_as_sf(bbcSites.3,
@@ -244,5 +266,9 @@ print(us_map)
 
 dev.off()
 
+# Write final data files
+
 write.csv(output, file = "jaccard_calc_table.csv")
 write.csv(pair.counts, file = "pair_counts.csv")
+write.csv(simple_output, file = "simple_results.csv")
+write.csv(output, file = "full_results.csv")

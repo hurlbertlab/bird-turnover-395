@@ -93,3 +93,8 @@ figures started
 
 need to create map with visuals on locations of bbs/bbc and their land covers
 
+4/24
+# Manually created vector to assign BBS statenum equivalent to BBC sites
+bbc_statenum_total = c("18", "18", "61", "14", "14", "18","22", "18", 
+                 "80","18", "68","14", "61", "68", "80", "82", "68", "14", "63", "27",
+                  "46", "59", "72", "77", "47", "72", "87", "49")

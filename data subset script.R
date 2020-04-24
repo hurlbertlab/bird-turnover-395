@@ -1,10 +1,8 @@
-## ENEC 395: Climate and avian turnover script 2
-
-# Final Products
-# bbcCensusFin - all censuses from selected BBC sites with at least 2 surveys 
-# 10 or more years apart
-# counts_list - each list space holds surveys taken at early/late BBC site years 
-# from 10 closest BBS sites
+######################################
+## ENEC 395: Avian community similarity: script 2
+# Ellie Kremer
+# 12/3/2019
+######################################
 
 # Library
 library(raster)
@@ -15,13 +13,13 @@ library(rgdal)
 library(ggplot2)
 library(spData)
 library(tmap)
-# Read in Breeding Bird Census (BBC) data
+
+## Read in Breeding Bird Census (BBC) data
+# https://github.com/weecology/bbc-data-rescue
 
 bbc_censuses = read.csv("bbc-data/bbc_censuses.csv", header = TRUE, sep = ",")
 bbc_counts = read.csv("bbc-data/bbc_counts.csv", header = TRUE, sep = ",")
 bbc_sites = read.csv("bbc-data/bbc_sites.csv", header = TRUE, sep = ",")
-
-## Use direct bbs csv if rdataretriever works, otherwise use bbs-2017 csv
 
 bbsWeather = read.csv("bbs_weather.csv")
 bbsRoutes = read.csv("bbs_routes.csv") %>% mutate(stateroute = (statenum * 1000) + route)
@@ -60,15 +58,10 @@ for(spp in bbc_counts$species) {
   }
 }
 
+## Filter to BBC surveys at the same site >= 2 census years, >= 10 years apart
 
-# Adding state identifiers based on statenum 
-state_conver = read.csv("state_convers.csv", header = TRUE, sep = ",")
-bbc_states = c("Connecticut", "Connecticut", "New York", "California", "California", "Connecticut", "District of Columbia", "Connecticut", "South Carolina", "Connecticut", "Ontario","California", "New York", "Ontario", "South Carolina", "Tennessee", "Ontario", "California")
-bbc_statenum = c("18", "18", "61", "14", "14", "18","22", "18", 
-                 "80","18", "68","14", "61", "68", "80", "82", "68", "14")
+# Step 1: Calculate total number of surveys performed at each site and maximum time between two surveys
 
-# Filter BBC censuses and sites ( >= 2 census years, >= 10 years apart)
-{
 bbcCountTemp <- data.frame(siteID_uni = unique(bbc_censuses$siteID), 
                              count = NA, time_range = NA)
 
@@ -83,17 +76,33 @@ for (s in 1: length(bbcCountTemp$siteID_uni)) {
 bbcCountTemp = bbcCountTemp %>% filter(count>= 2, time_range>=10) 
 bbcCensusFin = bbc_censuses %>%
   filter(siteID %in% bbcCountTemp$siteID_uni)
-}
-bbcSiteFinNLCD = c("forest", "forest", "forest, agriculture", "shrubland", "shrubland", "shrubland", "forest", "forest", "forest", "forest", "grassland", "wetland", "forest", "grassland", "forest", "forest", "grassland", "shrubland")
 
-bbcSitesFin = bbc_sites %>%
+# Step 2: Filter to BBC sites that meet criteria
+
+bbcSitesTemp = bbc_sites %>%
   dplyr::select(siteID:longitude) %>%
   filter(siteID %in% bbcCensusFin$siteID) %>%
-  distinct() %>%
+  distinct() 
+  
+# Adding state identifiers equivalent to BBS statenum classification
+state_conver = read.csv("state_convers.csv", header = TRUE, sep = ",")
+bbc_states = c("Connecticut", "Connecticut", "New York", "California", "California",
+               "Connecticut", "District of Columbia", "Connecticut", "South Carolina",
+               "Connecticut", "Ontario","California", "New York", "Ontario",
+               "South Carolina","Tennessee", "Ontario", "California")
+bbc_statenum = c("18", "18", "61", "14", "14", "18","22", "18", 
+                 "80","18", "68","14", "61", "68", "80", "82", "68", "14")
+
+# Categorizing BBC landcover types based on site name
+bbcSiteFinNLCD = c("forest", "forest", "forest, agriculture", "shrubland", "shrubland",
+                   "shrubland", "forest", "forest", "forest", "forest", "grassland",
+                   "wetland", "forest", "grassland", "forest", "forest", "grassland", "shrubland")
+
+bbcSitesFin = bbcSitesTemp %>%
   mutate(state = bbc_states) %>%
   mutate(statenum = bbc_statenum) %>%
   mutate(landcover = bbcSiteFinNLCD) %>%
-  # removing siteid 247 because no comparable elevation
+  # removing siteid 247 because no comparable elevation found in BBC sites
   filter(siteID != 247) 
 
 for (s in 1:nrow(bbcSitesFin)) {
@@ -101,50 +110,53 @@ for (s in 1:nrow(bbcSitesFin)) {
   bbcSitesFin$y1[s] = min(bbcCensusTemp$year)
   bbcSitesFin$y2[s] = max(bbcCensusTemp$year)
 }
-# Change to neg long values
+# Change to negative longitude values
 bbcSitesFin$longitude = -(bbcSitesFin$longitude)
 
 ####
-# alter Cali coordinates
+
+## Assigning coordinates for Point Reyes station sites based on coordinates of the Palomarin Field Station
+## available at https://github.com/weecology/bbc-data-rescue/blob/master/BBC_pdfs/BBC1973.pdf
+## coordinates based on Google Maps 
 for (n in 1:nrow(bbcSitesFin)) {
   if(bbcSitesFin$state[n] == "California" & bbcSitesFin$landcover[n] == "shrubland") {
     bbcSitesFin$latitude[n] = 37.92993
     bbcSitesFin$longitude[n] = -122.73526
   }
 }
-# Read in elevation data
+
+## Read in elevation data and assign to each survey site for BBC
+# https://www.sciencebase.gov/catalog/item/4fb5495ee4b04cb937751d6d
+
+# Step 1: Read in raw data
 
 elev <- raster("Elevation_GRID/NA_Elevation/data/NA_Elevation/na_elevation")
 proj4string(elev) = CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs")
 
+# Step 2: Transform coordinates to match the map projection used for elevation data
 latlong = data.frame(long = bbcSitesFin$longitude, lat = bbcSitesFin$latitude)
 sp::coordinates(latlong) = c("long", "lat")
 proj4string(latlong) = CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 latlong2 = spTransform(latlong, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
-# plot(elev)
-# points(latlong2)
 
+# Step 3: Extract and save elevation values for each BBC site
 bbcElev = extract(elev, latlong2) 
 bbcSitesFin2 = mutate(bbcSitesFin, elev_m = bbcElev)
 
-# Create spatial data frame
+####
+## Filtering BBS sites based on proximity to BBC sites and elevation
 
+# Step 1: Create spatial data frame of BBS sites and assign projection
 sf_bbsRoutes = st_as_sf(bbsRoutes, 
                    coords = c("longitude", "latitude"),
                    crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 sf_bbsRoutes = mutate(sf_bbsRoutes, longitude = bbsRoutes$longitude, latitude = bbsRoutes$latitude)
 sf_bbsRoutes$stateroute = (sf_bbsRoutes$statenum * 1000)+ sf_bbsRoutes$route
-
-
 sf_bbcSites = st_as_sf(bbcSitesFin2,
                        coords = c("longitude", "latitude"),
                        crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 
-#######
-
-
-
-# Area specific BBS Datasets
+# Step 2: Create area specific BBS Datasets to streamline processing
 {
 cali_bbs = st_as_sf(filter(sf_bbsRoutes, countrynum == "840" & 
                              statenum == "14"))
@@ -162,9 +174,9 @@ ny_bbs = st_as_sf(filter(sf_bbsRoutes, statenum == "61"|statenum == "72" |
 ont_bbs = st_as_sf(filter(sf_bbsRoutes, statenum == "68" | 
                             statenum == "61"|statenum == "49"))
 }
-# Dist calculations 
-# list of dataframes for each site with dist calc for each route in surrounding area
- 
+
+# Step 3: Calculate distances from BBC to BBS site and filter to BBS sites within 100000m of each BBC site
+
 dist_list = list()
 for (n in 1: nrow(sf_bbcSites)) {
   state = sf_bbcSites$statenum[n]
@@ -182,11 +194,6 @@ for (n in 1: nrow(sf_bbcSites)) {
                                df$geometry[s], "Great Circle")
    site$siteid[s] = sf_bbcSites$siteID[n]
   }
-
-  #site1 = top_n(site, 10, site$dist)
-  #if(sf_bbcSites[n,]$siteID == 177) {site1 = top_n(site, 20, site$dist)}
-
-  #site1$dist = -site1$dist
   
   site1 = site %>% filter(dist < 100000)
   
@@ -196,14 +203,12 @@ for (n in 1: nrow(sf_bbcSites)) {
   dist_list[[n]] = site1
 }
 
-# calculate elevation of each bbs route then filter to +/- 100m
+# Step 4: Calculate elevation of each BBS route then filter to +/- 100m of each BBC site
 dist_list_elev = dist_list
 for(n in 1: length(dist_list)) {
   latlong = st_coordinates(dist_list[[n]])
   latlong2 = SpatialPoints(latlong, CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
   latlong3 = spTransform(latlong2, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"))
-  #plot(elev)
-  #points(latlong3)
   bbsElev = extract(elev, latlong3)
   dist_list[[n]] = mutate(dist_list[[n]], elev_m = bbsElev)
 }
@@ -213,8 +218,8 @@ for (n in 1:length(dist_list)) {
                                  (elev_m >= sf_bbcSites$elev_m[n] - 100))
 }
 
-##
-# check whether bbs sites sampled at early and late period
+## Filter BBS candidates based on whether they were surveyed within a 5 year window of year 1 and year 2 of BBC surveys
+
 bbsRepeated_list = list()
 bbsRoutes_fin = list()
 for (n in 1: length(dist_list_elev)) {
@@ -238,11 +243,9 @@ for (n in 1: length(dist_list_elev)) {
   
 }
 
-## filter bbs by site and year, match counts to early/late bbc years
-# 5 year window (2 on either side of bbc)
+## Filter BBS count data to relevant surveys based on selected sites and survey years
 
 bbsCount = read.csv("bbs_count_filter.csv")
-
 
 counts_list = list()
 for (n in 1:length(dist_list_elev)) {
@@ -258,7 +261,8 @@ for (n in 1:length(dist_list_elev)) {
              (year >= dist_list[[n]]$y2[1]-2 & year <= dist_list[[n]]$y2[1]+2))
 }
 
-##### filter for transience, (e.g. present in 33% or more surveys)
+## Filter out transient species, (e.g. present in 33% or fewer surveys)
+
 counts_list_final = list()
 for (n in 1: length(counts_list)) {
   print(n)
@@ -284,6 +288,8 @@ for (n in 1: length(counts_list)) {
                            counts_list[[n]]$aou.route %in% bird$aou.route) 
 }
 
+## Generate tables for final routes and counts to be used in analysis
+
 counts_df = bind_rows(counts_list)
 subset_bbsCounts = write.csv(counts_df, "subset_bbsCounts.csv")
 
@@ -292,21 +298,10 @@ routes_df = left_join(routes_df, bbsRoutes, by = "stateroute")
 subset_bbsRoutes = write.csv(routes_df, "subset_bbsRoutes.csv")
 
 write.csv(bbcSitesFin2, "bbcSitesFin2.csv")
-#list of bbs routes for each bbc site (counts list filt by dist list)
-# bbcid column in counts
 
-#pdf(file = "bbs_hist.pdf")
-for(i in 1:length(counts_list)) {
-  hist(counts_list[[i]]$year, breaks = 20, xlab = "year", 
-       main = paste("Site ", i))
-}
-#dev.off()
-#####
+# Generate a histogram of surveys at each BBS stateroute in year 1 and year 2
 
-
-
-#####
-#pdf(file = "bbs_hist_byroute.pdf")
+pdf(file = "bbs_hist_byroute.pdf")
 for(i in 1:length(counts_list)) {
   
   par(mfrow = c(1,2))
@@ -321,10 +316,13 @@ for(i in 1:length(counts_list)) {
   barplot(table(occurrence2$stateroute), xlab = "Y2 state route surveys")
   
 }
-#dev.off()
+dev.off()
+
 par(mfrow = c(1, 1))
 
-#pdf(file = "map routes and surveys.pdf")
+# Generate map of BBC sites to be used in analysis and all potential BBS survey routes
+
+pdf(file = "map routes and surveys.pdf")
 us_states2163 = st_transform(us_states, 2163)
 us_map = tm_shape(us_states2163) + 
   tm_polygons() + 
@@ -342,4 +340,4 @@ for( n in 1: length(dist_list)) {
 
 print(us_map)
 
-#dev.off()
+dev.off()
